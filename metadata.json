@@ -2,5 +2,7 @@
   "name": "Gig Connect UG",
   "description": "Uganda's premier freelance marketplace connecting businesses with top local freelancers. Connect. Work. Earn.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
