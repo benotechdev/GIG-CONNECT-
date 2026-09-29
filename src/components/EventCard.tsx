@@ -170,7 +170,9 @@ export const EventCard: React.FC<EventCardProps> = ({ event, featured = false })
             />
             <span className="truncate font-medium text-slate-700">{event.organizer_name}</span>
             {event.organizer_verified && (
-              <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" title="Verified Organizer" />
+              <span title="Verified Organizer" className="inline-flex items-center">
+                <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+              </span>
             )}
           </div>
 

@@ -24,6 +24,7 @@ import { MyTicketsPage } from './pages/MyTicketsPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { MessagesPage } from './pages/MessagesPage';
 import { SavedPage } from './pages/SavedPage';
+import { NewsPage } from './pages/NewsPage';
 
 // Modals
 import { AuthModal } from './components/AuthModal';
@@ -114,6 +115,8 @@ function AppContent() {
         {currentView === 'messages' && <MessagesPage />}
 
         {currentView === 'saved' && <SavedPage />}
+
+        {currentView === 'news' && <NewsPage />}
       </main>
 
       <Footer />

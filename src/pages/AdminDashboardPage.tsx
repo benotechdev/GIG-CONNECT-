@@ -348,10 +348,10 @@ export const AdminDashboardPage: React.FC = () => {
                     </div>
                     <div className="text-right">
                       <span className="font-bold text-slate-900 font-mono block">
-                        {formatUGX(p.agreed_amount_ugx)}
+                        {formatUGX(p.agreed_amount_ugx || p.unit_price_ugx || 0)}
                       </span>
                       <span className="text-[10px] text-emerald-600 font-bold capitalize">
-                        {p.stage.replace('_', ' ')}
+                        {(p.stage || 'confirmed').replace('_', ' ')}
                       </span>
                     </div>
                   </div>
@@ -732,7 +732,7 @@ export const AdminDashboardPage: React.FC = () => {
                 <div key={j.id} className="py-3 flex items-center justify-between text-xs">
                   <div>
                     <span className="font-bold text-slate-900 block">{j.title}</span>
-                    <span className="text-slate-400">{j.client_name} · {formatUGX(j.budget_ugx)}</span>
+                    <span className="text-slate-400">{j.client_name || j.organizer_name} · {formatUGX(j.budget_ugx || j.starting_price_ugx || 0)}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button

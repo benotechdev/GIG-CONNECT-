@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   CheckCircle2,
   MapPin,
@@ -12,20 +12,30 @@ import {
   Share2,
   Heart,
   MessageSquare,
+  Camera,
+  X,
+  Edit3,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { EventCard } from '../components/EventCard';
+import { ImageUploadPanel } from '../components/ImageUploadPanel';
 
 export const OrganizerProfilePage: React.FC = () => {
   const {
     users,
+    currentUser,
     selectedOrganizerId,
     setCurrentView,
     events,
     favoriteOrganizerIds,
     toggleFavoriteOrganizer,
     setActiveConversationUserId,
+    updateCurrentUserProfile,
   } = useApp();
+
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [bioText, setBioText] = useState('');
 
   const organizer =
     users.find((u) => u.id === selectedOrganizerId) ||
@@ -41,9 +51,27 @@ export const OrganizerProfilePage: React.FC = () => {
   }
 
   const isFollowing = favoriteOrganizerIds.includes(organizer.id);
+  const isOwner = currentUser?.id === organizer.id || currentUser?.role === 'admin';
 
   // Filter events organized by this user
   const organizerEvents = events.filter((e) => e.organizer_id === organizer.id);
+
+  const handleOpenEdit = () => {
+    setAvatarUrl(organizer.avatar_url);
+    setBioText(organizer.bio || '');
+    setEditModalOpen(true);
+  };
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (avatarUrl) {
+      updateCurrentUserProfile({
+        avatar_url: avatarUrl,
+        bio: bioText,
+      });
+    }
+    setEditModalOpen(false);
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
@@ -62,6 +90,17 @@ export const OrganizerProfilePage: React.FC = () => {
             <ChevronLeft className="w-4 h-4" />
             <span>All Organizers</span>
           </button>
+
+          {isOwner && (
+            <button
+              type="button"
+              onClick={handleOpenEdit}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-bold transition-colors cursor-pointer"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              <span>Update Logo / Photo</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -69,11 +108,23 @@ export const OrganizerProfilePage: React.FC = () => {
       <div className="bg-white border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-            <img
-              src={organizer.avatar_url}
-              alt={organizer.full_name}
-              className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover ring-4 ring-slate-100 shadow-md shrink-0"
-            />
+            <div className="relative group">
+              <img
+                src={organizer.avatar_url}
+                alt={organizer.full_name}
+                className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover ring-4 ring-slate-100 shadow-md shrink-0"
+              />
+              {isOwner && (
+                <button
+                  type="button"
+                  onClick={handleOpenEdit}
+                  className="absolute bottom-0 right-0 p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 shadow-md cursor-pointer transition-transform group-hover:scale-110"
+                  title="Upload / Change Photo from Device"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
 
             <div className="space-y-2 min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
@@ -168,6 +219,66 @@ export const OrganizerProfilePage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Upload/Edit Modal */}
+      {editModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-lg p-6 space-y-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Camera className="w-5 h-5 text-blue-600" />
+                <h3 className="text-base font-bold text-slate-900">Upload Organizer Photo</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveProfile} className="space-y-4">
+              <ImageUploadPanel
+                value={avatarUrl}
+                onChange={(url) => setAvatarUrl(url)}
+                label="Organizer Logo / Avatar"
+                sublabel="Drag and drop or select your photo from phone or computer storage"
+                aspectRatio="square"
+                maxSizeMB={5}
+              />
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Organizer Bio
+                </label>
+                <textarea
+                  rows={3}
+                  value={bioText}
+                  onChange={(e) => setBioText(e.target.value)}
+                  className="w-full p-3 rounded-xl border border-slate-200 text-xs focus:outline-hidden focus:border-blue-600"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditModalOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold shadow-xs cursor-pointer"
+                >
+                  Save Photo
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -18,6 +18,7 @@ import { useApp } from '../context/AppContext';
 import { CATEGORIES } from '../data/mockData';
 import { formatUGX } from '../utils/formatters';
 import { TicketTier } from '../types';
+import { ImageUploadPanel } from '../components/ImageUploadPanel';
 
 export const CreateEventPage: React.FC = () => {
   const { publishEvent, currentUser, setCurrentView, monetizationSettings } = useApp();
@@ -32,6 +33,7 @@ export const CreateEventPage: React.FC = () => {
   const [venue, setVenue] = useState('');
   const [location, setLocation] = useState('Kampala');
   const [activitiesInput, setActivitiesInput] = useState('Live Bands, DJ Sets, VIP Bar');
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [isFeatured, setIsFeatured] = useState(false);
   const [isWeekend, setIsWeekend] = useState(true);
 
@@ -107,6 +109,7 @@ export const CreateEventPage: React.FC = () => {
       category,
       description: description.trim(),
       poster_url: posterUrl.trim() || samplePosters[0].url,
+      gallery_images: galleryImages.length > 0 ? galleryImages : undefined,
       date,
       time,
       venue: venue.trim(),
@@ -328,48 +331,89 @@ export const CreateEventPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Section 2: Event Poster Selection */}
-          <div className="space-y-4">
+          {/* Section 2: Event Poster & Image Drag/Select Upload Panel */}
+          <div className="space-y-6">
             <h3 className="text-lg font-black text-slate-900 border-b border-slate-100 pb-2">
-              2. Event Poster & Artwork
+              2. Event Poster & Media Artwork
             </h3>
 
-            <div className="space-y-3">
+            {/* Primary Poster */}
+            <ImageUploadPanel
+              value={posterUrl}
+              onChange={(url) => setPosterUrl(url)}
+              label="Primary Event Poster (Required)"
+              sublabel="Drag and drop your event flyer or click to select from device storage (JPEG, PNG, WebP, GIF)"
+              aspectRatio="poster"
+              maxSizeMB={10}
+              sampleImages={samplePosters}
+            />
+
+            {/* Optional Gallery Photos */}
+            <div className="pt-4 border-t border-slate-100 space-y-3">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  Image URL
+                <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
+                  Event Atmosphere & Venue Photos (Optional Gallery)
                 </label>
-                <input
-                  type="url"
-                  placeholder="https://images.unsplash.com/... or paste image URL"
-                  value={posterUrl}
-                  onChange={(e) => setPosterUrl(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-hidden focus:border-blue-600"
-                />
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Showcase stage setups, VIP areas, venue panoramas, or past editions to boost ticket sales.
+                </p>
               </div>
 
-              <div>
-                <span className="text-xs text-slate-500 font-semibold block mb-2">
-                  Or pick a curated sample poster:
-                </span>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-                  {samplePosters.map((sample) => (
+              {/* Upload panel to add a gallery photo */}
+              <ImageUploadPanel
+                value=""
+                onChange={(url) => {
+                  if (url && !galleryImages.includes(url)) {
+                    setGalleryImages((prev) => [...prev, url]);
+                  }
+                }}
+                label="Add Gallery Photo"
+                sublabel="Select or drag any photo from device storage to add to your event gallery"
+                aspectRatio="banner"
+                maxSizeMB={8}
+              />
+
+              {/* Gallery Thumbnails List */}
+              {galleryImages.length > 0 && (
+                <div className="space-y-2 pt-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                    <span>Attached Gallery Photos ({galleryImages.length})</span>
                     <button
-                      key={sample.name}
                       type="button"
-                      onClick={() => setPosterUrl(sample.url)}
-                      className={`relative rounded-xl overflow-hidden aspect-4/3 border-2 transition-all cursor-pointer group ${
-                        posterUrl === sample.url ? 'border-amber-500 ring-2 ring-amber-400' : 'border-transparent'
-                      }`}
+                      onClick={() => setGalleryImages([])}
+                      className="text-red-600 hover:text-red-700 text-xs font-semibold cursor-pointer"
                     >
-                      <img src={sample.url} alt={sample.name} className="w-full h-full object-cover" />
-                      <span className="absolute bottom-0 inset-x-0 bg-slate-950/80 text-[10px] text-white p-1 text-center font-bold truncate">
-                        {sample.name}
-                      </span>
+                      Clear All
                     </button>
-                  ))}
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {galleryImages.map((imgUrl, idx) => (
+                      <div
+                        key={idx}
+                        className="relative rounded-xl overflow-hidden aspect-4/3 border border-slate-200 group bg-slate-100 shadow-2xs"
+                      >
+                        <img
+                          src={imgUrl}
+                          alt={`Gallery photo ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setGalleryImages((prev) => prev.filter((_, i) => i !== idx))}
+                          className="absolute top-1.5 right-1.5 p-1 rounded-full bg-slate-950/80 text-white hover:bg-red-600 transition-colors shadow-xs"
+                          title="Remove photo"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="absolute bottom-1 left-1.5 px-1.5 py-0.5 rounded bg-slate-950/70 text-white text-[10px] font-mono">
+                          #{idx + 1}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 

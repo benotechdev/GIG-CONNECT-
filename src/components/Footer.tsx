@@ -8,6 +8,8 @@ import {
   MapPin,
   CheckCircle2,
   Database,
+  Ticket,
+  Sparkles,
 } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 import { useApp } from '../context/AppContext';
@@ -26,9 +28,9 @@ export const Footer: React.FC = () => {
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-sm font-bold text-white">Ugandan Escrow Protection Guarantee</p>
+                <p className="text-sm font-bold text-white">Ugandan Ticket Protection & Escrow Guarantee</p>
                 <p className="text-xs text-slate-400">
-                  Client funds held securely until milestones are approved. 100% satisfaction or dispute resolution.
+                  Verified event organizers, 100% genuine tickets, instant QR codes & direct MTN/Airtel MoMo checkout in UGX.
                 </p>
               </div>
             </div>
@@ -59,21 +61,21 @@ export const Footer: React.FC = () => {
           <div className="lg:col-span-2 space-y-4">
             <BrandLogo size="lg" showTagline={true} darkTheme={true} />
             <p className="text-sm text-slate-400 max-w-sm leading-relaxed">
-              Gig Connect UG is Uganda's premier freelance marketplace connecting progressive businesses with top local tech developers, creative designers, copywriters, and consultants.
+              Gig Connect UG is Uganda's premier events and entertainment platform. Discover and promote concerts, parties, road trips, festivals, sports, comedy, school events and unforgettable experiences across the Pearl of Africa.
             </p>
 
             <div className="space-y-1.5 text-xs text-slate-400">
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-amber-500 shrink-0" />
-                <span>Kampala Innovation Hub, Nakasero & Kololo, Uganda</span>
+                <span>Lugogo, Kololo & Nakasero, Kampala, Uganda</span>
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-blue-400 shrink-0" />
-                <span>support@gigconnect.ug</span>
+                <span>events@gigconnect.ug</span>
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>+256 (0) 700 800 900 / MTN Toll-Free</span>
+                <span>+256 (0) 700 800 900 / MoMo Toll-Free</span>
               </div>
             </div>
 
@@ -82,126 +84,155 @@ export const Footer: React.FC = () => {
               className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-slate-300 hover:text-white hover:border-slate-500 transition-colors cursor-pointer"
             >
               <Database className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Supabase Database Schema & Setup</span>
+              <span>Event Database Schema & Setup</span>
             </button>
           </div>
 
-          {/* For Clients */}
+          {/* For Event Goers */}
           <div>
-            <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-3">For Clients</h4>
+            <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-3">For Attendees</h4>
             <ul className="space-y-2 text-xs">
               <li>
                 <button
-                  onClick={() => setCurrentView('post-job')}
+                  onClick={() => setCurrentView('events')}
                   className="hover:text-amber-400 transition-colors cursor-pointer"
                 >
-                  Post a Job in UGX
+                  Browse All Events
                 </button>
               </li>
               <li>
                 <button
-                  onClick={() => setCurrentView('freelancers')}
+                  onClick={() => setCurrentView('events')}
                   className="hover:text-amber-400 transition-colors cursor-pointer"
                 >
-                  Browse Vetted Freelancers
+                  Weekend Events & Trips
                 </button>
               </li>
               <li>
                 <button
-                  onClick={() => setCurrentView('projects')}
+                  onClick={() => setCurrentView('my-tickets')}
                   className="hover:text-amber-400 transition-colors cursor-pointer"
                 >
-                  Milestone Escrow System
+                  My E-Tickets & Passes
                 </button>
               </li>
               <li>
                 <button
-                  onClick={() => setCurrentView('client-dashboard')}
+                  onClick={() => setCurrentView('saved')}
                   className="hover:text-amber-400 transition-colors cursor-pointer"
                 >
-                  Client Dashboard
+                  Saved Events & Favorites
                 </button>
               </li>
               <li>
-                <span className="text-slate-500">Enterprise Hiring (Kampala)</span>
+                <button
+                  onClick={() => setCurrentView('news')}
+                  className="hover:text-amber-400 transition-colors cursor-pointer text-amber-300 font-semibold"
+                >
+                  Entertainment News & Buzz
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => setCurrentView('organizers')}
+                  className="hover:text-amber-400 transition-colors cursor-pointer"
+                >
+                  Follow Top Organizers
+                </button>
               </li>
             </ul>
           </div>
 
-          {/* For Freelancers */}
+          {/* For Organizers */}
           <div>
-            <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-3">For Freelancers</h4>
+            <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-3">For Organizers</h4>
             <ul className="space-y-2 text-xs">
               <li>
                 <button
-                  onClick={() => setCurrentView('jobs')}
-                  className="hover:text-amber-400 transition-colors cursor-pointer"
+                  onClick={() => setCurrentView('create-event')}
+                  className="hover:text-amber-400 transition-colors cursor-pointer font-semibold text-amber-300"
                 >
-                  Find Jobs in Uganda
+                  Post an Event in UGX
                 </button>
               </li>
               <li>
                 <button
-                  onClick={() => setCurrentView('freelancer-dashboard')}
+                  onClick={() => setCurrentView('organizer-dashboard')}
                   className="hover:text-amber-400 transition-colors cursor-pointer"
                 >
-                  Freelancer Dashboard
+                  Organizer Dashboard
                 </button>
               </li>
               <li>
-                <span className="text-slate-500">Mobile Money Instant Payouts</span>
+                <button
+                  onClick={() => setCurrentView('organizer-dashboard')}
+                  className="hover:text-amber-400 transition-colors cursor-pointer"
+                >
+                  Ticket Sales & Revenue
+                </button>
               </li>
               <li>
-                <span className="text-slate-500">Verified Skills Badge</span>
+                <span className="text-slate-400">Instant MTN/Airtel Payouts</span>
               </li>
               <li>
-                <span className="text-slate-500">Community Workshops & Meetups</span>
+                <span className="text-slate-400">Verified Organizer Shield</span>
+              </li>
+              <li>
+                <span className="text-slate-400">Promote & Feature Listings</span>
               </li>
             </ul>
           </div>
 
           {/* Popular Categories */}
           <div>
-            <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-3">Categories</h4>
+            <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-3">Top Categories</h4>
             <ul className="space-y-2 text-xs">
               <li>
                 <button
-                  onClick={() => setCurrentView('jobs')}
+                  onClick={() => setCurrentView('events')}
                   className="hover:text-amber-400 transition-colors cursor-pointer"
                 >
-                  Web & Mobile Apps
+                  Concerts & Live Shows
                 </button>
               </li>
               <li>
                 <button
-                  onClick={() => setCurrentView('jobs')}
+                  onClick={() => setCurrentView('events')}
                   className="hover:text-amber-400 transition-colors cursor-pointer"
                 >
-                  Graphic & Brand Design
+                  Festivals & Carnivals
                 </button>
               </li>
               <li>
                 <button
-                  onClick={() => setCurrentView('jobs')}
+                  onClick={() => setCurrentView('events')}
                   className="hover:text-amber-400 transition-colors cursor-pointer"
                 >
-                  SEO & Social Media Marketing
+                  Parties & Nightlife
                 </button>
               </li>
               <li>
                 <button
-                  onClick={() => setCurrentView('jobs')}
+                  onClick={() => setCurrentView('events')}
                   className="hover:text-amber-400 transition-colors cursor-pointer"
                 >
-                  Legal & URSB Compliance
+                  Trips & Adventure Safaris
                 </button>
               </li>
               <li>
                 <button
-                  onClick={() => setCurrentView('jobs')}
+                  onClick={() => setCurrentView('events')}
                   className="hover:text-amber-400 transition-colors cursor-pointer"
                 >
-                  Data Science & Finance
+                  Comedy Shows & Galas
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => setCurrentView('events')}
+                  className="hover:text-amber-400 transition-colors cursor-pointer"
+                >
+                  Sports & School Events
                 </button>
               </li>
             </ul>
@@ -213,7 +244,7 @@ export const Footer: React.FC = () => {
           <div className="flex items-center gap-2">
             <span>© {new Date().getFullYear()} Gig Connect UG. All rights reserved.</span>
             <span>·</span>
-            <span>Tagline: Connect. Work. Earn.</span>
+            <span className="font-semibold text-slate-400">Discover Events. Create Experiences.</span>
           </div>
 
           <div className="flex items-center gap-3">
@@ -227,7 +258,7 @@ export const Footer: React.FC = () => {
               </span>
             </span>
             <span>·</span>
-            <span className="hover:text-slate-400 cursor-pointer">Terms & Escrow</span>
+            <span className="hover:text-slate-400 cursor-pointer">Ticket Terms & Conditions</span>
             <span>·</span>
             <span className="hover:text-slate-400 cursor-pointer">Privacy Policy</span>
           </div>

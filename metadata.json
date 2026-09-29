@@ -1,6 +1,6 @@
 {
   "name": "Gig Connect UG",
-  "description": "Uganda's premier freelance marketplace connecting businesses with top local freelancers. Connect. Work. Earn.",
+  "description": "Discover Events. Create Experiences. Uganda's modern events and entertainment platform for concerts, festivals, parties, trips, sports, comedy, and ticket booking in UGX.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

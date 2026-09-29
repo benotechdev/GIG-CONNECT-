@@ -95,6 +95,7 @@ export interface User {
   is_premium: boolean;
   portfolio?: PortfolioItem[];
   created_at: string;
+  total_tickets_sold?: number;
   // Compatibility
   hourly_rate_ugx?: number;
   skills?: string[];
@@ -221,3 +222,49 @@ export interface PlatformMonetizationSettings {
   featured_freelancer_fee_ugx?: number;
   premium_freelancer_monthly_ugx?: number;
 }
+
+export interface NewsArticle {
+  source: {
+    id: string | null;
+    name: string;
+    icon?: string;
+  };
+  author: string | null;
+  title: string;
+  description: string | null;
+  url: string;
+  urlToImage: string | null;
+  publishedAt: string;
+  content: string | null;
+  category?: string;
+  language?: string;
+  country?: string[];
+  keywords?: string[];
+  article_id?: string;
+}
+
+export interface NewsDataItem {
+  article_id: string;
+  link: string;
+  title: string;
+  description: string | null;
+  content: string | null;
+  keywords?: string[] | null;
+  creator?: string[] | null;
+  language?: string;
+  country?: string[];
+  category?: string[];
+  datatype?: string;
+  pubDate: string;
+  pubDateTZ?: string;
+  fetched_at?: string;
+  image_url?: string | null;
+  video_url?: string | null;
+  source_id?: string;
+  source_name: string;
+  source_priority?: number;
+  source_url?: string;
+  source_icon?: string;
+  duplicate?: boolean;
+}
+
