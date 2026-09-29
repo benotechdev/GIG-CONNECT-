@@ -21,3 +21,68 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* Smooth continuous marquee animations for cards */
+@keyframes scrollRight {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0%);
+  }
+}
+
+@keyframes scrollLeft {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-scroll-right {
+  display: flex;
+  width: max-content;
+  animation: scrollRight 42s linear infinite;
+  will-change: transform;
+}
+
+.animate-scroll-right-slow {
+  display: flex;
+  width: max-content;
+  animation: scrollRight 58s linear infinite;
+  will-change: transform;
+}
+
+.animate-scroll-right-fast {
+  display: flex;
+  width: max-content;
+  animation: scrollRight 30s linear infinite;
+  will-change: transform;
+}
+
+.animate-scroll-left {
+  display: flex;
+  width: max-content;
+  animation: scrollLeft 42s linear infinite;
+  will-change: transform;
+}
+
+.group-pause:hover .animate-scroll-right,
+.group-pause:hover .animate-scroll-right-slow,
+.group-pause:hover .animate-scroll-right-fast,
+.group-pause:hover .animate-scroll-left {
+  animation-play-state: paused;
+}
+
+.animation-paused {
+  animation-play-state: paused !important;
+}
+
+/* Designed subtle tilted orientation */
+.hero-tilted-band {
+  transform: rotate(-1.2deg) scale(1.02);
+  transform-origin: center center;
+}
+

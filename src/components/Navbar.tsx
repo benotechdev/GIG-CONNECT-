@@ -15,6 +15,7 @@ import {
   X,
   CheckCircle,
   ExternalLink,
+  Coins,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { BrandLogo } from './BrandLogo';
@@ -35,6 +36,8 @@ export const Navbar: React.FC = () => {
     setAuthModalOpen,
     setAuthModalMode,
     setSupabaseModalOpen,
+    setRolesModalOpen,
+    setPaymentDocsModalOpen,
     isSupabaseLive,
   } = useApp();
 
@@ -71,7 +74,27 @@ export const Navbar: React.FC = () => {
             <span className="sm:hidden text-slate-300">Uganda's Freelance Platform</span>
           </div>
 
-          <div className="flex items-center gap-4 text-slate-300 text-[11px]">
+          <div className="flex items-center gap-3 text-slate-300 text-[11px]">
+            {/* RBAC Matrix button */}
+            <button
+              onClick={() => setRolesModalOpen(true)}
+              className="hidden lg:inline-flex items-center gap-1 hover:text-white transition-colors cursor-pointer"
+              title="Inspect user roles & granular permissions system"
+            >
+              <Shield className="w-3.5 h-3.5 text-purple-400" />
+              <span>Roles & RBAC</span>
+            </button>
+
+            {/* Payment gateway docs pill */}
+            <button
+              onClick={() => setPaymentDocsModalOpen(true)}
+              className="inline-flex items-center gap-1 hover:text-amber-300 transition-colors cursor-pointer"
+              title="View Uganda Payment Gateway recommendation & technical integration report"
+            >
+              <Coins className="w-3.5 h-3.5 text-amber-400" />
+              <span className="font-semibold text-amber-300">UGX Escrow & Gateway</span>
+            </button>
+
             {/* Supabase status pill */}
             <button
               onClick={() => setSupabaseModalOpen(true)}
@@ -79,34 +102,36 @@ export const Navbar: React.FC = () => {
               title="Click to view Supabase database schema & configuration"
             >
               <Database className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
-              <span className="font-mono text-[10px] font-medium">
-                {isSupabaseLive ? 'Supabase: Connected' : 'DB: Ready / SQL'}
+              <span className="font-mono text-[10px] font-medium hidden sm:inline">
+                {isSupabaseLive ? 'Supabase: Live' : 'DB: Ready / SQL'}
               </span>
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             </button>
 
             {/* Quick demo switcher */}
-            <div className="hidden md:flex items-center gap-2 border-l border-slate-700 pl-3">
-              <span className="text-slate-400">Demo as:</span>
+            <div className="hidden md:flex items-center gap-1.5 border-l border-slate-700 pl-3">
+              <span className="text-slate-400 text-[10px]">Test Role:</span>
               <button
-                onClick={() => loginAs('user-client-1')}
+                onClick={() => loginAs('user-org-1')}
                 className={`px-1.5 py-0.5 rounded text-[10px] transition-colors cursor-pointer ${
-                  currentUser?.id === 'user-client-1'
-                    ? 'bg-blue-600 text-white font-semibold'
-                    : 'bg-slate-800 text-slate-300 hover:text-white'
-                }`}
-              >
-                Client
-              </button>
-              <button
-                onClick={() => loginAs('user-free-1')}
-                className={`px-1.5 py-0.5 rounded text-[10px] transition-colors cursor-pointer ${
-                  currentUser?.id === 'user-free-1'
+                  currentUser?.id === 'user-org-1'
                     ? 'bg-amber-600 text-white font-semibold'
                     : 'bg-slate-800 text-slate-300 hover:text-white'
                 }`}
+                title="Talent Africa Group"
               >
-                Freelancer
+                Organizer
+              </button>
+              <button
+                onClick={() => loginAs('user-attendee-1')}
+                className={`px-1.5 py-0.5 rounded text-[10px] transition-colors cursor-pointer ${
+                  currentUser?.id === 'user-attendee-1'
+                    ? 'bg-blue-600 text-white font-semibold'
+                    : 'bg-slate-800 text-slate-300 hover:text-white'
+                }`}
+                title="Brian Kato"
+              >
+                Attendee
               </button>
               <button
                 onClick={() => loginAs('user-admin-1')}
@@ -117,6 +142,16 @@ export const Navbar: React.FC = () => {
                 }`}
               >
                 Admin
+              </button>
+              <button
+                onClick={() => loginAs('user-mod-1')}
+                className={`px-1.5 py-0.5 rounded text-[10px] transition-colors cursor-pointer ${
+                  currentUser?.id === 'user-mod-1'
+                    ? 'bg-teal-600 text-white font-semibold'
+                    : 'bg-slate-800 text-slate-300 hover:text-white'
+                }`}
+              >
+                Moderator
               </button>
             </div>
           </div>
@@ -137,70 +172,57 @@ export const Navbar: React.FC = () => {
           {/* Desktop Nav Links */}
           <nav className="hidden lg:flex items-center gap-1">
             <button
-              onClick={() => navigateTo('jobs')}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                currentView === 'jobs'
-                  ? 'bg-blue-50 text-blue-700 font-semibold'
+              onClick={() => navigateTo('events')}
+              className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors cursor-pointer ${
+                currentView === 'events'
+                  ? 'bg-blue-50 text-blue-700 font-extrabold'
                   : 'text-slate-700 hover:text-blue-700 hover:bg-slate-50'
               }`}
             >
-              Browse Jobs
+              Browse Events
             </button>
 
             <button
-              onClick={() => navigateTo('freelancers')}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                currentView === 'freelancers'
-                  ? 'bg-blue-50 text-blue-700 font-semibold'
+              onClick={() => navigateTo('organizers')}
+              className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors cursor-pointer ${
+                currentView === 'organizers'
+                  ? 'bg-blue-50 text-blue-700 font-extrabold'
                   : 'text-slate-700 hover:text-blue-700 hover:bg-slate-50'
               }`}
             >
-              Find Freelancers
+              Top Organizers
             </button>
 
             <button
-              onClick={() => navigateTo('projects')}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                currentView === 'projects'
-                  ? 'bg-blue-50 text-blue-700 font-semibold'
-                  : 'text-slate-700 hover:text-blue-700 hover:bg-slate-50'
+              onClick={() => navigateTo('my-tickets')}
+              className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors cursor-pointer ${
+                currentView === 'my-tickets'
+                  ? 'bg-emerald-50 text-emerald-800 font-extrabold'
+                  : 'text-slate-700 hover:text-emerald-700 hover:bg-slate-50'
               }`}
             >
-              Project Tracker
+              My E-Tickets
             </button>
 
-            {currentUser?.role === 'client' && (
+            {(currentUser?.role === 'organizer' || currentUser?.role === 'client' || currentUser?.role === 'agency') && (
               <button
-                onClick={() => navigateTo('client-dashboard')}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                  currentView === 'client-dashboard'
-                    ? 'bg-blue-50 text-blue-700 font-semibold'
-                    : 'text-slate-700 hover:text-blue-700 hover:bg-slate-50'
+                onClick={() => navigateTo('organizer-dashboard')}
+                className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors cursor-pointer ${
+                  currentView === 'organizer-dashboard'
+                    ? 'bg-amber-50 text-amber-900 font-extrabold'
+                    : 'text-slate-700 hover:text-amber-800 hover:bg-slate-50'
                 }`}
               >
-                Client Dashboard
-              </button>
-            )}
-
-            {currentUser?.role === 'freelancer' && (
-              <button
-                onClick={() => navigateTo('freelancer-dashboard')}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                  currentView === 'freelancer-dashboard'
-                    ? 'bg-blue-50 text-blue-700 font-semibold'
-                    : 'text-slate-700 hover:text-blue-700 hover:bg-slate-50'
-                }`}
-              >
-                Freelancer Dashboard
+                Organizer Dashboard
               </button>
             )}
 
             {currentUser?.role === 'admin' && (
               <button
                 onClick={() => navigateTo('admin-dashboard')}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+                className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
                   currentView === 'admin-dashboard'
-                    ? 'bg-purple-50 text-purple-700 font-semibold'
+                    ? 'bg-purple-50 text-purple-700 font-extrabold'
                     : 'text-purple-700 hover:bg-purple-50'
                 }`}
               >
@@ -303,12 +325,12 @@ export const Navbar: React.FC = () => {
               )}
             </div>
 
-            {/* Post a Job button (CTA) */}
+            {/* Post a Job button (Bold Primary CTA) */}
             <button
               onClick={() => navigateTo('post-job')}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-xs sm:text-sm font-semibold shadow-xs transition-all cursor-pointer"
+              className="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 text-xs sm:text-sm font-black shadow-md shadow-amber-500/20 transition-all cursor-pointer uppercase tracking-wider"
             >
-              <PlusCircle className="w-4 h-4" />
+              <PlusCircle className="w-4 h-4 text-slate-950" />
               <span>Post a Job</span>
             </button>
 
@@ -389,6 +411,28 @@ export const Navbar: React.FC = () => {
                       >
                         <CheckCircle className="w-3.5 h-3.5 text-slate-500" />
                         Project Pipeline Tracker
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setRolesModalOpen(true);
+                          setProfileDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-xs font-medium text-purple-700 hover:bg-purple-50 cursor-pointer flex items-center gap-2"
+                      >
+                        <Shield className="w-3.5 h-3.5" />
+                        Roles & Permissions Matrix
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setPaymentDocsModalOpen(true);
+                          setProfileDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-xs font-medium text-amber-800 hover:bg-amber-50 cursor-pointer flex items-center gap-2"
+                      >
+                        <Coins className="w-3.5 h-3.5" />
+                        UGX Payment & Escrow Docs
                       </button>
 
                       <button

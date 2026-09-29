@@ -25,6 +25,7 @@ export const FreelancerDashboardPage: React.FC = () => {
     projects,
     updateProjectStage,
     setCurrentView,
+    setPayoutModalOpen,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'proposals' | 'contracts' | 'profile'>('overview');
@@ -122,12 +123,21 @@ export const FreelancerDashboardPage: React.FC = () => {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
-            <span className="text-xs font-bold text-slate-400 uppercase block">Total Net Earnings</span>
-            <span className="text-2xl font-black text-emerald-700 font-mono mt-1 block">
-              {formatUGX(totalEarnings)}
-            </span>
-            <span className="text-[11px] text-slate-500 mt-0.5 block">UGX Mobile Money Ready</span>
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+            <div>
+              <span className="text-xs font-bold text-slate-400 uppercase block">Total Net Earnings</span>
+              <span className="text-2xl font-black text-emerald-700 font-mono mt-1 block">
+                {formatUGX(totalEarnings)}
+              </span>
+              <span className="text-[11px] text-slate-500 mt-0.5 block">UGX Mobile Money Ready</span>
+            </div>
+            <button
+              onClick={() => setPayoutModalOpen(true)}
+              className="mt-3 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              <span>Withdraw to MoMo</span>
+            </button>
           </div>
 
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">

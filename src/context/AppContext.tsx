@@ -2,31 +2,39 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import {
   User,
-  Job,
-  Application,
-  ProjectContract,
+  UserRole,
+  Permission,
+  roleHasPermission,
+  EventItem,
+  TicketTier,
+  TicketBooking,
   Message,
   Review,
   Notification,
   Report,
   PlatformMonetizationSettings,
-  ProjectStage,
+  PaymentTransaction,
+  PayoutRequest,
+  AuditLog,
+  PaymentMethod,
 } from '../types';
 import {
   INITIAL_USERS,
-  INITIAL_JOBS,
-  INITIAL_APPLICATIONS,
-  INITIAL_PROJECTS,
+  INITIAL_EVENTS,
+  INITIAL_BOOKINGS,
   INITIAL_MESSAGES,
   INITIAL_REVIEWS,
   INITIAL_NOTIFICATIONS,
   INITIAL_REPORTS,
   INITIAL_SETTINGS,
+  INITIAL_TRANSACTIONS,
+  INITIAL_PAYOUTS,
+  INITIAL_AUDIT_LOGS,
 } from '../data/mockData';
 import { isSupabaseConnected } from '../lib/supabase';
 
 interface AppContextType {
-  // Auth & User
+  // Auth & User & Scalable RBAC
   currentUser: User | null;
   users: User[];
   setCurrentUser: (user: User | null) => void;
@@ -35,34 +43,50 @@ interface AppContextType {
   logout: () => void;
   updateCurrentUserProfile: (updates: Partial<User>) => void;
   toggleVerifyUser: (userId: string) => void;
-  toggleFeatureFreelancer: (userId: string) => void;
-  togglePremiumFreelancer: (userId: string) => void;
+  toggleFeatureOrganizer: (userId: string) => void;
+  togglePremiumOrganizer: (userId: string) => void;
+  changeUserRole: (userId: string, newRole: UserRole) => void;
+  can: (permission: Permission) => boolean;
 
-  // Jobs
-  jobs: Job[];
-  selectedJobId: string | null;
-  setSelectedJobId: (id: string | null) => void;
-  postJob: (jobData: Omit<Job, 'id' | 'client_id' | 'client_name' | 'client_avatar' | 'client_rating' | 'created_at' | 'applications_count'>) => Job;
-  toggleFeatureJob: (jobId: string) => void;
-  deleteJob: (jobId: string) => void;
-  updateJobStatus: (jobId: string, status: Job['status']) => void;
+  // Events
+  events: EventItem[];
+  selectedEventId: string | null;
+  setSelectedEventId: (id: string | null) => void;
+  publishEvent: (eventData: Partial<EventItem>) => EventItem;
+  toggleFeatureEvent: (eventId: string) => void;
+  toggleTrendingEvent: (eventId: string) => void;
+  deleteEvent: (eventId: string) => void;
+  updateEventStatus: (eventId: string, status: EventItem['status']) => void;
 
-  // Freelancer Profiles
-  selectedFreelancerId: string | null;
-  setSelectedFreelancerId: (id: string | null) => void;
+  // Organizers
+  selectedOrganizerId: string | null;
+  setSelectedOrganizerId: (id: string | null) => void;
 
-  // Applications
-  applications: Application[];
-  applyToJob: (data: { jobId: string; proposedBudget: number; days: number; coverLetter: string }) => boolean;
-  acceptApplication: (applicationId: string) => void;
-  rejectApplication: (applicationId: string) => void;
+  // Ticket Bookings & RSVPs
+  ticketBookings: TicketBooking[];
+  bookTicket: (data: {
+    eventId: string;
+    tierId: string;
+    quantity: number;
+    attendeeName: string;
+    attendeePhone: string;
+    attendeeEmail: string;
+    paymentMethod: 'mtn_momo' | 'airtel_money' | 'card' | 'free';
+  }) => TicketBooking | null;
+  cancelTicketBooking: (bookingId: string) => void;
 
-  // Project Tracking
-  projects: ProjectContract[];
-  selectedProjectId: string | null;
-  setSelectedProjectId: (id: string | null) => void;
-  updateProjectStage: (projectId: string, stage: ProjectStage, deliverableNote?: string, deliverableUrl?: string) => void;
-  completeAndReleaseProject: (projectId: string) => void;
+  // Financials & Withdrawals
+  transactions: PaymentTransaction[];
+  payoutRequests: PayoutRequest[];
+  auditLogs: AuditLog[];
+  requestPayout: (data: {
+    amountUgx: number;
+    paymentMethod: 'mtn_momo' | 'airtel_money';
+    accountPhone: string;
+    accountName: string;
+  }) => PayoutRequest;
+  approvePayout: (payoutId: string) => void;
+  addAuditLog: (action: string, resourceType: AuditLog['resource_type'], resourceId: string, details: string) => void;
 
   // Messaging
   messages: Message[];
@@ -73,13 +97,13 @@ interface AppContextType {
 
   // Reviews
   reviews: Review[];
-  submitReview: (projectId: string, toUserId: string, rating: number, comment: string) => void;
+  submitReview: (eventId: string, toOrganizerId: string, rating: number, comment: string) => void;
 
   // Saved / Favorites
-  savedJobIds: string[];
-  favoriteFreelancerIds: string[];
-  toggleSaveJob: (jobId: string) => void;
-  toggleFavoriteFreelancer: (freelancerId: string) => void;
+  savedEventIds: string[];
+  favoriteOrganizerIds: string[];
+  toggleSaveEvent: (eventId: string) => void;
+  toggleFavoriteOrganizer: (organizerId: string) => void;
 
   // Notifications
   notifications: Notification[];
@@ -89,7 +113,7 @@ interface AppContextType {
 
   // Reports
   reports: Report[];
-  submitReport: (targetType: 'job' | 'user', targetId: string, targetTitle: string, reason: string, details: string) => void;
+  submitReport: (targetType: 'event' | 'user' | 'job', targetId: string, targetTitle: string, reason: string, details: string) => void;
   resolveReport: (reportId: string, action: 'resolved' | 'dismissed') => void;
 
   // Monetization Settings
@@ -103,16 +127,56 @@ interface AppContextType {
   setAuthModalOpen: (open: boolean) => void;
   authModalMode: 'login' | 'register' | 'switch';
   setAuthModalMode: (mode: 'login' | 'register' | 'switch') => void;
-  applyModalOpen: boolean;
-  setApplyModalOpen: (open: boolean) => void;
-  reportModalData: { targetType: 'job' | 'user'; targetId: string; targetTitle: string } | null;
-  setReportModalData: (data: { targetType: 'job' | 'user'; targetId: string; targetTitle: string } | null) => void;
-  reviewModalProject: ProjectContract | null;
-  setReviewModalProject: (project: ProjectContract | null) => void;
+  ticketBookingModalEvent: EventItem | null;
+  setTicketBookingModalEvent: (event: EventItem | null) => void;
+  shareModalEvent: EventItem | null;
+  setShareModalEvent: (event: EventItem | null) => void;
+  reportModalData: { targetType: 'event' | 'user' | 'job'; targetId: string; targetTitle: string } | null;
+  setReportModalData: (data: { targetType: 'event' | 'user' | 'job'; targetId: string; targetTitle: string } | null) => void;
   supabaseModalOpen: boolean;
   setSupabaseModalOpen: (open: boolean) => void;
+  rolesModalOpen: boolean;
+  setRolesModalOpen: (open: boolean) => void;
+  paymentDocsModalOpen: boolean;
+  setPaymentDocsModalOpen: (open: boolean) => void;
+  payoutModalOpen: boolean;
+  setPayoutModalOpen: (open: boolean) => void;
+  roleRestrictedNotice: { action: string; requiredRole: string; reason: string } | null;
+  setRoleRestrictedNotice: (notice: { action: string; requiredRole: string; reason: string } | null) => void;
 
-  // Quick reset
+  // Compatibility aliases
+  jobs: EventItem[];
+  selectedJobId: string | null;
+  setSelectedJobId: (id: string | null) => void;
+  postJob: (data: any) => any;
+  toggleFeatureJob: (id: string) => void;
+  deleteJob: (id: string) => void;
+  updateJobStatus: (id: string, status: any) => void;
+  selectedFreelancerId: string | null;
+  setSelectedFreelancerId: (id: string | null) => void;
+  applications: TicketBooking[];
+  applyToJob: (data: any) => boolean;
+  acceptApplication: (id: string) => void;
+  rejectApplication: (id: string) => void;
+  projects: TicketBooking[];
+  selectedProjectId: string | null;
+  setSelectedProjectId: (id: string | null) => void;
+  updateProjectStage: (id: string, stage: any) => void;
+  completeAndReleaseProject: (id: string) => void;
+  savedJobIds: string[];
+  favoriteFreelancerIds: string[];
+  toggleSaveJob: (id: string) => void;
+  toggleFavoriteFreelancer: (id: string) => void;
+  applyModalOpen: boolean;
+  setApplyModalOpen: (open: boolean) => void;
+  reviewModalProject: any;
+  setReviewModalProject: (project: any) => void;
+  escrowDepositModalProject: any;
+  setEscrowDepositModalProject: (project: any) => void;
+  initiateEscrowDeposit: (data: any) => any;
+  toggleFeatureFreelancer: (id: string) => void;
+  togglePremiumFreelancer: (id: string) => void;
+
   resetAllData: () => void;
   isSupabaseLive: boolean;
 }
@@ -121,157 +185,117 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const STORAGE_KEYS = {
   CURRENT_USER_ID: 'gig_connect_current_user_id',
-  USERS: 'gig_connect_users_v1',
-  JOBS: 'gig_connect_jobs_v1',
-  APPLICATIONS: 'gig_connect_applications_v1',
-  PROJECTS: 'gig_connect_projects_v1',
-  MESSAGES: 'gig_connect_messages_v1',
-  REVIEWS: 'gig_connect_reviews_v1',
-  NOTIFICATIONS: 'gig_connect_notifications_v1',
-  REPORTS: 'gig_connect_reports_v1',
-  SETTINGS: 'gig_connect_settings_v1',
-  SAVED_JOBS: 'gig_connect_saved_jobs_v1',
-  FAV_FREELANCERS: 'gig_connect_fav_freelancers_v1',
+  USERS: 'gig_connect_events_users_v2',
+  EVENTS: 'gig_connect_events_v2',
+  BOOKINGS: 'gig_connect_bookings_v2',
+  MESSAGES: 'gig_connect_events_messages_v2',
+  REVIEWS: 'gig_connect_events_reviews_v2',
+  NOTIFICATIONS: 'gig_connect_events_notifications_v2',
+  REPORTS: 'gig_connect_events_reports_v2',
+  SETTINGS: 'gig_connect_events_settings_v2',
+  SAVED_EVENTS: 'gig_connect_saved_events_v2',
+  FAV_ORGANIZERS: 'gig_connect_fav_organizers_v2',
+  TRANSACTIONS: 'gig_connect_events_transactions_v2',
+  PAYOUTS: 'gig_connect_events_payouts_v2',
+  AUDIT_LOGS: 'gig_connect_events_audit_logs_v2',
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Load initial state from LocalStorage or fall back to mock data
+  // Initialize state with localStorage fallbacks
   const [users, setUsers] = useState<User[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.USERS);
-      return saved ? JSON.parse(saved) : INITIAL_USERS;
-    } catch {
-      return INITIAL_USERS;
-    }
+    const saved = localStorage.getItem(STORAGE_KEYS.USERS);
+    return saved ? JSON.parse(saved) : INITIAL_USERS;
   });
 
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    try {
-      const savedId = localStorage.getItem(STORAGE_KEYS.CURRENT_USER_ID);
-      const allUsers = users.length ? users : INITIAL_USERS;
-      if (savedId) {
-        const found = allUsers.find((u) => u.id === savedId);
-        if (found) return found;
-      }
-      // Default to demo client (David Ssekandi) or Brian Kato
-      return allUsers.find((u) => u.id === 'user-client-1') || allUsers[0];
-    } catch {
-      return INITIAL_USERS[0];
+    const savedId = localStorage.getItem(STORAGE_KEYS.CURRENT_USER_ID);
+    if (savedId) {
+      const found = users.find((u) => u.id === savedId);
+      if (found) return found;
     }
+    // Default to organizer Talent Africa Group
+    return INITIAL_USERS[0];
   });
 
-  const [jobs, setJobs] = useState<Job[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.JOBS);
-      return saved ? JSON.parse(saved) : INITIAL_JOBS;
-    } catch {
-      return INITIAL_JOBS;
-    }
+  const [events, setEvents] = useState<EventItem[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.EVENTS);
+    return saved ? JSON.parse(saved) : INITIAL_EVENTS;
   });
 
-  const [applications, setApplications] = useState<Application[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.APPLICATIONS);
-      return saved ? JSON.parse(saved) : INITIAL_APPLICATIONS;
-    } catch {
-      return INITIAL_APPLICATIONS;
-    }
-  });
-
-  const [projects, setProjects] = useState<ProjectContract[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.PROJECTS);
-      return saved ? JSON.parse(saved) : INITIAL_PROJECTS;
-    } catch {
-      return INITIAL_PROJECTS;
-    }
+  const [ticketBookings, setTicketBookings] = useState<TicketBooking[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.BOOKINGS);
+    return saved ? JSON.parse(saved) : INITIAL_BOOKINGS;
   });
 
   const [messages, setMessages] = useState<Message[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.MESSAGES);
-      return saved ? JSON.parse(saved) : INITIAL_MESSAGES;
-    } catch {
-      return INITIAL_MESSAGES;
-    }
+    const saved = localStorage.getItem(STORAGE_KEYS.MESSAGES);
+    return saved ? JSON.parse(saved) : INITIAL_MESSAGES;
   });
 
   const [reviews, setReviews] = useState<Review[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.REVIEWS);
-      return saved ? JSON.parse(saved) : INITIAL_REVIEWS;
-    } catch {
-      return INITIAL_REVIEWS;
-    }
+    const saved = localStorage.getItem(STORAGE_KEYS.REVIEWS);
+    return saved ? JSON.parse(saved) : INITIAL_REVIEWS;
   });
 
   const [notifications, setNotifications] = useState<Notification[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
-      return saved ? JSON.parse(saved) : INITIAL_NOTIFICATIONS;
-    } catch {
-      return INITIAL_NOTIFICATIONS;
-    }
+    const saved = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
+    return saved ? JSON.parse(saved) : INITIAL_NOTIFICATIONS;
   });
 
   const [reports, setReports] = useState<Report[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.REPORTS);
-      return saved ? JSON.parse(saved) : INITIAL_REPORTS;
-    } catch {
-      return INITIAL_REPORTS;
-    }
+    const saved = localStorage.getItem(STORAGE_KEYS.REPORTS);
+    return saved ? JSON.parse(saved) : INITIAL_REPORTS;
   });
 
   const [monetizationSettings, setMonetizationSettings] = useState<PlatformMonetizationSettings>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-      return saved ? JSON.parse(saved) : INITIAL_SETTINGS;
-    } catch {
-      return INITIAL_SETTINGS;
-    }
+    const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+    return saved ? JSON.parse(saved) : INITIAL_SETTINGS;
   });
 
-  const [savedJobIds, setSavedJobIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.SAVED_JOBS);
-      return saved ? JSON.parse(saved) : ['job-1', 'job-2'];
-    } catch {
-      return ['job-1', 'job-2'];
-    }
+  const [savedEventIds, setSavedEventIds] = useState<string[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.SAVED_EVENTS);
+    return saved ? JSON.parse(saved) : ['event-1', 'event-2'];
   });
 
-  const [favoriteFreelancerIds, setFavoriteFreelancerIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.FAV_FREELANCERS);
-      return saved ? JSON.parse(saved) : ['user-free-1'];
-    } catch {
-      return ['user-free-1'];
-    }
+  const [favoriteOrganizerIds, setFavoriteOrganizerIds] = useState<string[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.FAV_ORGANIZERS);
+    return saved ? JSON.parse(saved) : ['user-org-1'];
   });
 
-  // UI state
+  const [transactions, setTransactions] = useState<PaymentTransaction[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.TRANSACTIONS);
+    return saved ? JSON.parse(saved) : INITIAL_TRANSACTIONS;
+  });
+
+  const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.PAYOUTS);
+    return saved ? JSON.parse(saved) : INITIAL_PAYOUTS;
+  });
+
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.AUDIT_LOGS);
+    return saved ? JSON.parse(saved) : INITIAL_AUDIT_LOGS;
+  });
+
+  // Navigation and active UI selections
   const [currentView, setCurrentView] = useState<string>('home');
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
-  const [selectedFreelancerId, setSelectedFreelancerId] = useState<string | null>(null);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>('event-1');
+  const [selectedOrganizerId, setSelectedOrganizerId] = useState<string | null>(null);
   const [activeConversationUserId, setActiveConversationUserId] = useState<string | null>(null);
 
-  // Modals
+  // Modals state
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authModalMode, setAuthModalMode] = useState<'login' | 'register' | 'switch'>('switch');
-  const [applyModalOpen, setApplyModalOpen] = useState(false);
-  const [reportModalData, setReportModalData] = useState<{ targetType: 'job' | 'user'; targetId: string; targetTitle: string } | null>(null);
-  const [reviewModalProject, setReviewModalProject] = useState<ProjectContract | null>(null);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'register' | 'switch'>('login');
+  const [ticketBookingModalEvent, setTicketBookingModalEvent] = useState<EventItem | null>(null);
+  const [shareModalEvent, setShareModalEvent] = useState<EventItem | null>(null);
+  const [reportModalData, setReportModalData] = useState<{ targetType: 'event' | 'user' | 'job'; targetId: string; targetTitle: string } | null>(null);
   const [supabaseModalOpen, setSupabaseModalOpen] = useState(false);
+  const [rolesModalOpen, setRolesModalOpen] = useState(false);
+  const [paymentDocsModalOpen, setPaymentDocsModalOpen] = useState(false);
+  const [payoutModalOpen, setPayoutModalOpen] = useState(false);
+  const [roleRestrictedNotice, setRoleRestrictedNotice] = useState<{ action: string; requiredRole: string; reason: string } | null>(null);
 
-  const [isSupabaseLive, setIsSupabaseLive] = useState<boolean>(() => isSupabaseConnected());
-
-  // Keep localStorage updated
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
-  }, [users]);
-
+  // Sync to localStorage
   useEffect(() => {
     if (currentUser) {
       localStorage.setItem(STORAGE_KEYS.CURRENT_USER_ID, currentUser.id);
@@ -281,44 +305,74 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [currentUser]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.JOBS, JSON.stringify(jobs));
-  }, [jobs]);
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+  }, [users]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.APPLICATIONS, JSON.stringify(applications));
-  }, [applications]);
+    localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(events));
+  }, [events]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(projects));
-  }, [projects]);
+    localStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(ticketBookings));
+  }, [ticketBookings]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages));
   }, [messages]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(reviews));
-  }, [reviews]);
-
-  useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications));
   }, [notifications]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.REPORTS, JSON.stringify(reports));
-  }, [reports]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(monetizationSettings));
   }, [monetizationSettings]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.SAVED_JOBS, JSON.stringify(savedJobIds));
-  }, [savedJobIds]);
+    localStorage.setItem(STORAGE_KEYS.SAVED_EVENTS, JSON.stringify(savedEventIds));
+  }, [savedEventIds]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.FAV_FREELANCERS, JSON.stringify(favoriteFreelancerIds));
-  }, [favoriteFreelancerIds]);
+    localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(transactions));
+  }, [transactions]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.PAYOUTS, JSON.stringify(payoutRequests));
+  }, [payoutRequests]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(auditLogs));
+  }, [auditLogs]);
+
+  // RBAC Permission Checker
+  const can = (permission: Permission): boolean => {
+    return roleHasPermission(currentUser?.role, permission);
+  };
+
+  const changeUserRole = (userId: string, newRole: UserRole) => {
+    setUsers((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
+    );
+    if (currentUser?.id === userId) {
+      setCurrentUser((prev) => (prev ? { ...prev, role: newRole } : null));
+    }
+    addAuditLog('role:changed', 'user', userId, `Changed role to ${newRole}`);
+  };
+
+  const addAuditLog = (action: string, resourceType: AuditLog['resource_type'], resourceId: string, details: string) => {
+    const newLog: AuditLog = {
+      id: `audit-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      actor_id: currentUser?.id || 'system',
+      actor_name: currentUser?.full_name || 'System',
+      actor_role: currentUser?.role || 'admin',
+      action,
+      resource_type: resourceType,
+      resource_id: resourceId,
+      details,
+      timestamp: new Date().toISOString(),
+    };
+    setAuditLogs((prev) => [newLog, ...prev]);
+  };
 
   // Auth methods
   const loginAs = (userId: string) => {
@@ -334,25 +388,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `user-${Date.now()}`,
       email: userData.email || 'user@example.ug',
       full_name: userData.full_name || 'New User',
-      role: userData.role || 'freelancer',
+      role: userData.role || 'attendee',
       avatar_url:
         userData.avatar_url ||
         'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
       phone: userData.phone || '+256 700 000 000',
       location: userData.location || 'Kampala, Uganda',
-      title: userData.title || (userData.role === 'client' ? 'Business Owner' : 'Independent Specialist'),
-      bio: userData.bio || 'Excited to connect, work, and collaborate on Gig Connect UG!',
-      hourly_rate_ugx: userData.hourly_rate_ugx || 45000,
-      skills: userData.skills || ['Communication', 'Project Management'],
+      title: userData.title || (userData.role === 'organizer' ? 'Event Organizer' : 'Event Goer & Fan'),
+      bio: userData.bio || 'Excited to discover and host events on Gig Connect UG!',
       rating: 5.0,
       total_reviews: 0,
-      completed_jobs_count: 0,
       earnings_ugx: 0,
       spent_ugx: 0,
       is_verified: false,
       is_featured: false,
       is_premium: false,
-      portfolio: [],
       created_at: new Date().toISOString(),
     };
 
@@ -360,13 +410,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCurrentUser(newUser);
     setAuthModalOpen(false);
 
-    // Welcome notification
     addNotification(
       newUser.id,
       'Welcome to Gig Connect UG! 🇺🇬',
-      'Your profile is set up. Browse jobs or discover top Ugandan talent right away.',
+      'Discover thrilling concerts, trips, festivals, and weekend parties across Uganda.',
       'system',
-      newUser.role === 'client' ? 'client-dashboard' : 'freelancer-dashboard'
+      'events'
     );
   };
 
@@ -391,7 +440,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const toggleFeatureFreelancer = (userId: string) => {
+  const toggleFeatureOrganizer = (userId: string) => {
     setUsers((prev) =>
       prev.map((u) => (u.id === userId ? { ...u, is_featured: !u.is_featured } : u))
     );
@@ -400,7 +449,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const togglePremiumFreelancer = (userId: string) => {
+  const togglePremiumOrganizer = (userId: string) => {
     setUsers((prev) =>
       prev.map((u) => (u.id === userId ? { ...u, is_premium: !u.is_premium } : u))
     );
@@ -409,356 +458,323 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Job Actions
-  const postJob = (jobData: Omit<Job, 'id' | 'client_id' | 'client_name' | 'client_avatar' | 'client_rating' | 'created_at' | 'applications_count'>): Job => {
-    const client = currentUser || users.find((u) => u.role === 'client') || users[0];
-    const newJob: Job = {
-      id: `job-${Date.now()}`,
-      client_id: client.id,
-      client_name: client.full_name,
-      client_avatar: client.avatar_url,
-      client_company: client.title,
-      client_rating: client.rating,
-      title: jobData.title,
-      description: jobData.description,
-      category: jobData.category,
-      skills_required: jobData.skills_required,
-      budget_ugx: jobData.budget_ugx,
-      budget_type: jobData.budget_type,
-      duration: jobData.duration,
-      experience_level: jobData.experience_level,
-      location: jobData.location,
-      is_remote: jobData.is_remote,
-      is_featured: jobData.is_featured,
-      status: 'open',
-      deadline: jobData.deadline || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+  // Event Management
+  const publishEvent = (eventData: Partial<EventItem>): EventItem => {
+    const lowestTierPrice =
+      eventData.ticket_tiers && eventData.ticket_tiers.length > 0
+        ? Math.min(...eventData.ticket_tiers.map((t) => t.price_ugx))
+        : 0;
+
+    const newEvent: EventItem = {
+      id: `event-${Date.now()}`,
+      title: eventData.title || 'Untitled Event',
+      tagline: eventData.tagline || 'Exciting experience in Uganda',
+      description: eventData.description || '',
+      category: eventData.category || 'Concerts',
+      poster_url:
+        eventData.poster_url ||
+        'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1000&q=80',
+      gallery_images: eventData.gallery_images || [],
+      organizer_id: currentUser?.id || 'user-org-1',
+      organizer_name: currentUser?.full_name || 'Event Organizer',
+      organizer_avatar:
+        currentUser?.avatar_url ||
+        'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80',
+      organizer_verified: currentUser?.is_verified ?? true,
+      date: eventData.date || new Date().toISOString().split('T')[0],
+      end_date: eventData.end_date || eventData.date,
+      time: eventData.time || '6:00 PM - Late',
+      venue: eventData.venue || 'Lugogo Cricket Oval',
+      location: eventData.location || 'Kampala, Uganda',
+      city: eventData.city || 'Kampala',
+      ticket_tiers:
+        eventData.ticket_tiers && eventData.ticket_tiers.length > 0
+          ? eventData.ticket_tiers
+          : [
+              {
+                id: `tier-${Date.now()}-1`,
+                name: 'Regular Admission',
+                price_ugx: 30000,
+                capacity: 500,
+                sold_count: 0,
+                perks: ['General Admission', 'Live Stage Access'],
+              },
+            ],
+      starting_price_ugx: lowestTierPrice,
+      activities: eventData.activities || ['Live Performances', 'Food & Drinks', 'Music'],
+      lineup: eventData.lineup || [],
+      is_featured: eventData.is_featured || false,
+      is_trending: false,
+      is_weekend: true,
+      is_sponsored: false,
+      status: 'published',
+      views_count: 1,
+      attendees_count: 0,
       created_at: new Date().toISOString(),
-      applications_count: 0,
+      // Legacy Job fields
+      budget_ugx: lowestTierPrice,
+      client_id: currentUser?.id || 'user-org-1',
+      client_name: currentUser?.full_name || 'Event Organizer',
+      client_avatar: currentUser?.avatar_url || '',
     };
 
-    setJobs((prev) => [newJob, ...prev]);
+    setEvents((prev) => [newEvent, ...prev]);
 
-    // Notification
-    addNotification(
-      client.id,
-      'Job Posted Successfully!',
-      `Your listing "${newJob.title}" is now live across Uganda.`,
-      'system',
-      'client-dashboard'
-    );
-
-    return newJob;
-  };
-
-  const toggleFeatureJob = (jobId: string) => {
-    setJobs((prev) =>
-      prev.map((j) => (j.id === jobId ? { ...j, is_featured: !j.is_featured } : j))
-    );
-  };
-
-  const deleteJob = (jobId: string) => {
-    setJobs((prev) => prev.filter((j) => j.id !== jobId));
-  };
-
-  const updateJobStatus = (jobId: string, status: Job['status']) => {
-    setJobs((prev) =>
-      prev.map((j) => (j.id === jobId ? { ...j, status } : j))
-    );
-  };
-
-  // Applications
-  const applyToJob = ({
-    jobId,
-    proposedBudget,
-    days,
-    coverLetter,
-  }: {
-    jobId: string;
-    proposedBudget: number;
-    days: number;
-    coverLetter: string;
-  }): boolean => {
-    if (!currentUser) {
-      setAuthModalMode('login');
-      setAuthModalOpen(true);
-      return false;
+    // Update organizer event count
+    if (currentUser) {
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === currentUser.id
+            ? { ...u, events_count: (u.events_count || 0) + 1 }
+            : u
+        )
+      );
     }
 
-    const targetJob = jobs.find((j) => j.id === jobId);
-    if (!targetJob) return false;
-
-    // Check if already applied
-    const existing = applications.find(
-      (a) => a.job_id === jobId && a.freelancer_id === currentUser.id
-    );
-    if (existing) {
-      return false;
-    }
-
-    const newApp: Application = {
-      id: `app-${Date.now()}`,
-      job_id: jobId,
-      job_title: targetJob.title,
-      client_id: targetJob.client_id,
-      freelancer_id: currentUser.id,
-      freelancer_name: currentUser.full_name,
-      freelancer_avatar: currentUser.avatar_url,
-      freelancer_title: currentUser.title,
-      freelancer_rating: currentUser.rating,
-      freelancer_location: currentUser.location,
-      proposed_budget_ugx: proposedBudget,
-      estimated_days: days,
-      cover_letter: coverLetter,
-      status: 'pending',
-      created_at: new Date().toISOString(),
-    };
-
-    setApplications((prev) => [newApp, ...prev]);
-
-    // Increment application count on job
-    setJobs((prev) =>
-      prev.map((j) =>
-        j.id === jobId ? { ...j, applications_count: j.applications_count + 1 } : j
-      )
-    );
-
-    // Notify client
     addNotification(
-      targetJob.client_id,
-      'New Proposal Received',
-      `${currentUser.full_name} submitted a proposal for "${targetJob.title}".`,
-      'application',
-      'client-dashboard'
+      newEvent.organizer_id,
+      'Event Published Successfully! 🚀',
+      `"${newEvent.title}" is now live on Gig Connect UG. Tickets are ready for booking in UGX.`,
+      'event',
+      'events'
     );
 
-    // Notify freelancer
-    addNotification(
-      currentUser.id,
-      'Proposal Submitted',
-      `You successfully applied to "${targetJob.title}".`,
-      'system',
-      'freelancer-dashboard'
-    );
+    addAuditLog('event:create', 'job', newEvent.id, `Created event ${newEvent.title}`);
+    confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
 
-    return true;
+    return newEvent;
   };
 
-  // Accept Application -> Create Contract in Hired stage
-  const acceptApplication = (applicationId: string) => {
-    const app = applications.find((a) => a.id === applicationId);
-    if (!app) return;
+  const toggleFeatureEvent = (eventId: string) => {
+    setEvents((prev) =>
+      prev.map((e) => (e.id === eventId ? { ...e, is_featured: !e.is_featured } : e))
+    );
+  };
 
-    const targetJob = jobs.find((j) => j.id === app.job_id);
-    if (!targetJob) return;
+  const toggleTrendingEvent = (eventId: string) => {
+    setEvents((prev) =>
+      prev.map((e) => (e.id === eventId ? { ...e, is_trending: !e.is_trending } : e))
+    );
+  };
 
-    // Calculate platform fee
-    const commissionPercent = monetizationSettings.commission_rate_percent || 10;
-    const agreedAmount = app.proposed_budget_ugx;
-    const platformFee = (agreedAmount * commissionPercent) / 100;
-    const freelancerPayout = agreedAmount - platformFee;
+  const deleteEvent = (eventId: string) => {
+    setEvents((prev) => prev.filter((e) => e.id !== eventId));
+    addAuditLog('event:delete', 'job', eventId, 'Deleted event listing');
+  };
 
-    // Create Project Contract
-    const newContract: ProjectContract = {
-      id: `proj-${Date.now()}`,
-      job_id: app.job_id,
-      job_title: app.job_title,
-      client_id: app.client_id,
-      client_name: targetJob.client_name,
-      client_avatar: targetJob.client_avatar,
-      freelancer_id: app.freelancer_id,
-      freelancer_name: app.freelancer_name,
-      freelancer_avatar: app.freelancer_avatar,
-      agreed_amount_ugx: agreedAmount,
+  const updateEventStatus = (eventId: string, status: EventItem['status']) => {
+    setEvents((prev) =>
+      prev.map((e) => (e.id === eventId ? { ...e, status } : e))
+    );
+  };
+
+  // Ticket Booking Flow
+  const bookTicket = (data: {
+    eventId: string;
+    tierId: string;
+    quantity: number;
+    attendeeName: string;
+    attendeePhone: string;
+    attendeeEmail: string;
+    paymentMethod: 'mtn_momo' | 'airtel_money' | 'card' | 'free';
+  }): TicketBooking | null => {
+    const targetEvent = events.find((e) => e.id === data.eventId);
+    if (!targetEvent) return null;
+
+    const tier = targetEvent.ticket_tiers.find((t) => t.id === data.tierId);
+    const unitPrice = tier ? tier.price_ugx : 0;
+    const totalAmount = unitPrice * data.quantity;
+    const platformFee = Math.round(totalAmount * (monetizationSettings.commission_rate_percent / 100));
+    const organizerPayout = totalAmount - platformFee;
+
+    const newBooking: TicketBooking = {
+      id: `tkt-${Date.now()}`,
+      event_id: targetEvent.id,
+      event_title: targetEvent.title,
+      event_poster: targetEvent.poster_url,
+      event_date: targetEvent.date,
+      event_time: targetEvent.time,
+      event_venue: targetEvent.venue,
+      event_location: targetEvent.location,
+      attendee_id: currentUser?.id || `user-guest-${Date.now()}`,
+      attendee_name: data.attendeeName,
+      attendee_email: data.attendeeEmail,
+      attendee_phone: data.attendeePhone,
+      tier_id: data.tierId,
+      tier_name: tier?.name || 'Standard Pass',
+      quantity: data.quantity,
+      unit_price_ugx: unitPrice,
+      total_amount_ugx: totalAmount,
       platform_fee_ugx: platformFee,
-      freelancer_payout_ugx: freelancerPayout,
-      stage: 'hired',
+      organizer_payout_ugx: organizerPayout,
+      payment_method: data.paymentMethod,
+      payment_status: 'paid',
+      qr_code_ref: `GCUG-TKT-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 900 + 100)}`,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      is_paid: false,
+      // Legacy compatibility
+      job_id: targetEvent.id,
+      job_title: targetEvent.title,
+      freelancer_id: currentUser?.id || 'guest',
+      freelancer_name: data.attendeeName,
+      status: 'accepted',
     };
 
-    setProjects((prev) => [newContract, ...prev]);
+    // Update tickets
+    setTicketBookings((prev) => [newBooking, ...prev]);
 
-    // Update application status
-    setApplications((prev) =>
-      prev.map((a) => (a.id === applicationId ? { ...a, status: 'accepted' } : a))
-    );
-
-    // Update job status
-    setJobs((prev) =>
-      prev.map((j) =>
-        j.id === app.job_id
-          ? { ...j, status: 'in_progress', hired_freelancer_id: app.freelancer_id }
-          : j
-      )
-    );
-
-    // Notify freelancer
-    addNotification(
-      app.freelancer_id,
-      'Congratulations! You are Hired 🎉',
-      `${targetJob.client_name} accepted your proposal for "${targetJob.title}".`,
-      'hire',
-      'projects'
-    );
-
-    // Trigger celebration confetti
-    try {
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { y: 0.6 },
-      });
-    } catch {
-      // ignore
-    }
-  };
-
-  const rejectApplication = (applicationId: string) => {
-    setApplications((prev) =>
-      prev.map((a) => (a.id === applicationId ? { ...a, status: 'rejected' } : a))
-    );
-  };
-
-  // Project Stage Tracking: Posted -> Applied -> Hired -> In Progress -> Completed
-  const updateProjectStage = (
-    projectId: string,
-    stage: ProjectStage,
-    deliverableNote?: string,
-    deliverableUrl?: string
-  ) => {
-    setProjects((prev) =>
-      prev.map((p) => {
-        if (p.id === projectId) {
-          return {
-            ...p,
-            stage,
-            deliverable_note: deliverableNote ?? p.deliverable_note,
-            deliverable_url: deliverableUrl ?? p.deliverable_url,
-            updated_at: new Date().toISOString(),
-          };
-        }
-        return p;
+    // Update event attendee count & tier sold count
+    setEvents((prev) =>
+      prev.map((e) => {
+        if (e.id !== targetEvent.id) return e;
+        const updatedTiers = e.ticket_tiers.map((t) =>
+          t.id === data.tierId ? { ...t, sold_count: (t.sold_count || 0) + data.quantity } : t
+        );
+        return {
+          ...e,
+          attendees_count: (e.attendees_count || 0) + data.quantity,
+          ticket_tiers: updatedTiers,
+        };
       })
     );
 
-    const project = projects.find((p) => p.id === projectId);
-    if (!project) return;
-
-    if (stage === 'in_progress') {
-      addNotification(
-        project.client_id,
-        'Project Milestone Update',
-        `${project.freelancer_name} has started active development on "${project.job_title}".`,
-        'system',
-        'projects'
-      );
+    // Record Payment Transaction
+    if (totalAmount > 0) {
+      const newTx: PaymentTransaction = {
+        id: `tx-${Date.now()}`,
+        job_id: targetEvent.id,
+        job_title: targetEvent.title,
+        client_id: newBooking.attendee_id,
+        client_name: newBooking.attendee_name,
+        freelancer_id: targetEvent.organizer_id,
+        freelancer_name: targetEvent.organizer_name,
+        type: 'escrow_deposit',
+        amount_ugx: totalAmount,
+        platform_fee_ugx: platformFee,
+        freelancer_net_ugx: organizerPayout,
+        currency: 'UGX',
+        payment_method: (data.paymentMethod === 'free' ? 'mtn_momo' : data.paymentMethod) as PaymentMethod,
+        payment_gateway: data.paymentMethod === 'airtel_money' ? 'pesapal' : 'flutterwave',
+        gateway_reference: `GCUG-MOMO-${Date.now().toString().slice(-7)}`,
+        phone_number: data.attendeePhone,
+        status: 'released',
+        notes: `${data.quantity}x ${tier?.name || 'Tickets'} for ${targetEvent.title}`,
+        created_at: new Date().toISOString(),
+        released_at: new Date().toISOString(),
+      };
+      setTransactions((prev) => [newTx, ...prev]);
     }
-  };
 
-  // Complete and release escrow payment
-  const completeAndReleaseProject = (projectId: string) => {
-    const project = projects.find((p) => p.id === projectId);
-    if (!project) return;
-
-    const completedAt = new Date().toISOString();
-
-    setProjects((prev) =>
-      prev.map((p) =>
-        p.id === projectId
-          ? {
-              ...p,
-              stage: 'completed',
-              is_paid: true,
-              completed_at: completedAt,
-              updated_at: completedAt,
-            }
-          : p
-      )
-    );
-
-    // Mark job as completed
-    setJobs((prev) =>
-      prev.map((j) => (j.id === project.job_id ? { ...j, status: 'completed' } : j))
-    );
-
-    // Update Freelancer earnings and completed job count
+    // Update organizer revenue & user spent
     setUsers((prev) =>
       prev.map((u) => {
-        if (u.id === project.freelancer_id) {
-          return {
-            ...u,
-            completed_jobs_count: u.completed_jobs_count + 1,
-            earnings_ugx: u.earnings_ugx + project.freelancer_payout_ugx,
-          };
+        if (u.id === targetEvent.organizer_id) {
+          return { ...u, earnings_ugx: (u.earnings_ugx || 0) + organizerPayout };
         }
-        if (u.id === project.client_id) {
-          return {
-            ...u,
-            completed_jobs_count: u.completed_jobs_count + 1,
-            spent_ugx: u.spent_ugx + project.agreed_amount_ugx,
-          };
+        if (currentUser && u.id === currentUser.id) {
+          return { ...u, spent_ugx: (u.spent_ugx || 0) + totalAmount };
         }
         return u;
       })
     );
 
-    // If current user is one of them, refresh
-    if (currentUser?.id === project.freelancer_id) {
-      setCurrentUser((prev) =>
-        prev
-          ? {
-              ...prev,
-              completed_jobs_count: prev.completed_jobs_count + 1,
-              earnings_ugx: prev.earnings_ugx + project.freelancer_payout_ugx,
-            }
-          : null
-      );
-    } else if (currentUser?.id === project.client_id) {
-      setCurrentUser((prev) =>
-        prev
-          ? {
-              ...prev,
-              completed_jobs_count: prev.completed_jobs_count + 1,
-              spent_ugx: prev.spent_ugx + project.agreed_amount_ugx,
-            }
-          : null
-      );
-    }
-
-    // Notify Freelancer
+    // Notify Attendee
     addNotification(
-      project.freelancer_id,
-      'Project Completed & Funds Released! 💰',
-      `${project.client_name} approved the deliverables. UGX ${project.freelancer_payout_ugx.toLocaleString()} has been added to your balance.`,
-      'payment',
-      'freelancer-dashboard'
+      newBooking.attendee_id,
+      'E-Ticket Ready for Download! 🎟️',
+      `Your booking for "${targetEvent.title}" is confirmed. Tap to view your QR ticket.`,
+      'ticket',
+      'my-tickets'
     );
 
-    // Open review modal for client
-    setReviewModalProject(project);
+    // Notify Organizer
+    addNotification(
+      targetEvent.organizer_id,
+      'Ticket Booked! 💰',
+      `${data.attendeeName} booked ${data.quantity}x ${tier?.name || 'ticket'} (UGX ${totalAmount.toLocaleString()}) via ${data.paymentMethod.toUpperCase()}.`,
+      'payment',
+      'organizer-dashboard'
+    );
 
-    // Confetti celebration
-    try {
-      confetti({
-        particleCount: 120,
-        spread: 90,
-        origin: { y: 0.5 },
-      });
-    } catch {
-      // ignore
+    addAuditLog('ticket:book', 'job', newBooking.id, `Booked ${data.quantity} tickets for ${targetEvent.title}`);
+    confetti({ particleCount: 90, spread: 75, origin: { y: 0.55 } });
+
+    return newBooking;
+  };
+
+  const cancelTicketBooking = (bookingId: string) => {
+    setTicketBookings((prev) =>
+      prev.map((b) => (b.id === bookingId ? { ...b, payment_status: 'refunded' } : b))
+    );
+  };
+
+  // Financial Payouts for Organizers
+  const requestPayout = (data: {
+    amountUgx: number;
+    paymentMethod: 'mtn_momo' | 'airtel_money';
+    accountPhone: string;
+    accountName: string;
+  }): PayoutRequest => {
+    const feeUgx = 1500; // Telecom withdrawal fee
+    const netPayout = Math.max(0, data.amountUgx - feeUgx);
+
+    const newPayout: PayoutRequest = {
+      id: `payout-${Date.now()}`,
+      freelancer_id: currentUser?.id || 'organizer',
+      freelancer_name: currentUser?.full_name || 'Organizer',
+      amount_ugx: data.amountUgx,
+      fee_ugx: feeUgx,
+      net_payout_ugx: netPayout,
+      payment_method: data.paymentMethod,
+      account_phone: data.accountPhone,
+      account_name: data.accountName,
+      gateway_reference: `DISB-${data.paymentMethod.toUpperCase()}-${Date.now().toString().slice(-6)}`,
+      status: 'completed', // Simulated instant payout to MoMo
+      created_at: new Date().toISOString(),
+      processed_at: new Date().toISOString(),
+    };
+
+    setPayoutRequests((prev) => [newPayout, ...prev]);
+
+    // Deduct from organizer balance
+    if (currentUser) {
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === currentUser.id
+            ? { ...u, earnings_ugx: Math.max(0, (u.earnings_ugx || 0) - data.amountUgx) }
+            : u
+        )
+      );
+      setCurrentUser((prev) =>
+        prev ? { ...prev, earnings_ugx: Math.max(0, (prev.earnings_ugx || 0) - data.amountUgx) } : null
+      );
     }
+
+    addNotification(
+      newPayout.freelancer_id,
+      'Payout Sent to Mobile Money! ⚡',
+      `UGX ${netPayout.toLocaleString()} has been transferred to ${data.accountPhone} (${data.accountName}) via ${data.paymentMethod === 'mtn_momo' ? 'MTN MoMo' : 'Airtel Money'}.`,
+      'payment',
+      'organizer-dashboard'
+    );
+
+    addAuditLog('payout:processed', 'payment', newPayout.id, `Disbursed UGX ${data.amountUgx} to ${data.accountPhone}`);
+    return newPayout;
+  };
+
+  const approvePayout = (payoutId: string) => {
+    setPayoutRequests((prev) =>
+      prev.map((p) => (p.id === payoutId ? { ...p, status: 'completed', processed_at: new Date().toISOString() } : p))
+    );
   };
 
   // Messaging
   const sendMessage = (receiverId: string, text: string) => {
     if (!currentUser || !text.trim()) return;
 
-    const conversationId = [currentUser.id, receiverId].sort().join('--');
-
+    const convId = [currentUser.id, receiverId].sort().join('_');
     const newMsg: Message = {
       id: `msg-${Date.now()}`,
-      conversation_id: conversationId,
+      conversation_id: convId,
       sender_id: currentUser.id,
       sender_name: currentUser.full_name,
       sender_avatar: currentUser.avatar_url,
@@ -770,11 +786,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setMessages((prev) => [...prev, newMsg]);
 
-    // Send notification to receiver
     addNotification(
       receiverId,
-      `New message from ${currentUser.full_name}`,
-      text.slice(0, 80) + (text.length > 80 ? '...' : ''),
+      `New Message from ${currentUser.full_name}`,
+      text.slice(0, 80),
       'message',
       'messages'
     );
@@ -782,9 +797,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const markConversationAsRead = (otherUserId: string) => {
     if (!currentUser) return;
+    const convId = [currentUser.id, otherUserId].sort().join('_');
     setMessages((prev) =>
       prev.map((m) =>
-        m.sender_id === otherUserId && m.receiver_id === currentUser.id
+        m.conversation_id === convId && m.receiver_id === currentUser.id
           ? { ...m, is_read: true }
           : m
       )
@@ -792,89 +808,61 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Reviews
-  const submitReview = (projectId: string, toUserId: string, rating: number, comment: string) => {
+  const submitReview = (eventId: string, toOrganizerId: string, rating: number, comment: string) => {
     if (!currentUser) return;
-
-    const project = projects.find((p) => p.id === projectId);
-    const newReview: Review = {
+    const event = events.find((e) => e.id === eventId);
+    const newRev: Review = {
       id: `rev-${Date.now()}`,
-      project_id: projectId,
-      project_title: project ? project.job_title : 'Freelance Contract',
+      project_id: eventId,
+      project_title: event?.title || 'Event',
       from_user_id: currentUser.id,
       from_user_name: currentUser.full_name,
       from_user_avatar: currentUser.avatar_url,
-      to_user_id: toUserId,
+      to_user_id: toOrganizerId,
       rating,
-      comment: comment.trim(),
+      comment,
       created_at: new Date().toISOString(),
     };
 
-    setReviews((prev) => [newReview, ...prev]);
+    setReviews((prev) => [newRev, ...prev]);
 
-    // Recalculate recipient rating
+    // Recalculate organizer rating
     setUsers((prev) =>
       prev.map((u) => {
-        if (u.id === toUserId) {
-          const userReviews = [...reviews.filter((r) => r.to_user_id === toUserId), newReview];
-          const avg = userReviews.reduce((acc, r) => acc + r.rating, 0) / userReviews.length;
-          return {
-            ...u,
-            rating: Number(avg.toFixed(2)),
-            total_reviews: userReviews.length,
-          };
-        }
-        return u;
+        if (u.id !== toOrganizerId) return u;
+        const currentCount = u.total_reviews || 0;
+        const newRating = Number((((u.rating || 5) * currentCount + rating) / (currentCount + 1)).toFixed(2));
+        return {
+          ...u,
+          rating: newRating,
+          total_reviews: currentCount + 1,
+        };
       })
     );
 
-    // Notify user
     addNotification(
-      toUserId,
-      'New 5-Star Review Received! ⭐',
-      `${currentUser.full_name} gave you a ${rating}-star review: "${comment.slice(0, 60)}..."`,
+      toOrganizerId,
+      'New 5-Star Event Review! ⭐',
+      `${currentUser.full_name} left a review on your event.`,
       'review',
-      'freelancer-dashboard'
-    );
-
-    setReviewModalProject(null);
-  };
-
-  // Bookmarking
-  const toggleSaveJob = (jobId: string) => {
-    setSavedJobIds((prev) =>
-      prev.includes(jobId) ? prev.filter((id) => id !== jobId) : [...prev, jobId]
+      'organizer-dashboard'
     );
   };
 
-  const toggleFavoriteFreelancer = (freelancerId: string) => {
-    setFavoriteFreelancerIds((prev) =>
-      prev.includes(freelancerId)
-        ? prev.filter((id) => id !== freelancerId)
-        : [...prev, freelancerId]
+  // Saved / Favorites
+  const toggleSaveEvent = (eventId: string) => {
+    setSavedEventIds((prev) =>
+      prev.includes(eventId) ? prev.filter((id) => id !== eventId) : [...prev, eventId]
+    );
+  };
+
+  const toggleFavoriteOrganizer = (organizerId: string) => {
+    setFavoriteOrganizerIds((prev) =>
+      prev.includes(organizerId) ? prev.filter((id) => id !== organizerId) : [...prev, organizerId]
     );
   };
 
   // Notifications
-  const addNotification = (
-    userId: string,
-    title: string,
-    message: string,
-    type: Notification['type'],
-    linkTab?: string
-  ) => {
-    const newNotif: Notification = {
-      id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-      user_id: userId,
-      title,
-      message,
-      type,
-      link_tab: linkTab,
-      is_read: false,
-      created_at: new Date().toISOString(),
-    };
-    setNotifications((prev) => [newNotif, ...prev]);
-  };
-
   const markNotificationRead = (id: string) => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
@@ -888,19 +876,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
+  const addNotification = (
+    userId: string,
+    title: string,
+    message: string,
+    type: Notification['type'],
+    linkTab?: string
+  ) => {
+    const newNotif: Notification = {
+      id: `notif-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      user_id: userId,
+      title,
+      message,
+      type,
+      link_tab: linkTab,
+      is_read: false,
+      created_at: new Date().toISOString(),
+    };
+    setNotifications((prev) => [newNotif, ...prev]);
+  };
+
   // Reports
   const submitReport = (
-    targetType: 'job' | 'user',
+    targetType: 'event' | 'user' | 'job',
     targetId: string,
     targetTitle: string,
     reason: string,
     details: string
   ) => {
-    const reporter = currentUser || users[0];
-    const newReport: Report = {
+    const newRep: Report = {
       id: `rep-${Date.now()}`,
-      reporter_id: reporter.id,
-      reporter_name: reporter.full_name,
+      reporter_id: currentUser?.id || 'guest',
+      reporter_name: currentUser?.full_name || 'Guest User',
       target_type: targetType,
       target_id: targetId,
       target_name_or_title: targetTitle,
@@ -909,21 +916,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       status: 'pending',
       created_at: new Date().toISOString(),
     };
-
-    setReports((prev) => [newReport, ...prev]);
-    setReportModalData(null);
-
-    // Notify admins
-    const admins = users.filter((u) => u.role === 'admin');
-    admins.forEach((admin) => {
-      addNotification(
-        admin.id,
-        'New Moderation Report Filed',
-        `Report against ${targetType} "${targetTitle}": ${reason}`,
-        'system',
-        'admin-dashboard'
-      );
-    });
+    setReports((prev) => [newRep, ...prev]);
+    addAuditLog('report:submit', 'job', targetId, `Reported ${targetType} for ${reason}`);
   };
 
   const resolveReport = (reportId: string, action: 'resolved' | 'dismissed') => {
@@ -934,23 +928,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateMonetizationSettings = (settings: Partial<PlatformMonetizationSettings>) => {
     setMonetizationSettings((prev) => ({ ...prev, ...settings }));
+    addAuditLog('settings:update', 'setting', 'monetization', 'Updated platform commission and fees');
   };
 
   const resetAllData = () => {
     localStorage.clear();
     setUsers(INITIAL_USERS);
     setCurrentUser(INITIAL_USERS[0]);
-    setJobs(INITIAL_JOBS);
-    setApplications(INITIAL_APPLICATIONS);
-    setProjects(INITIAL_PROJECTS);
+    setEvents(INITIAL_EVENTS);
+    setTicketBookings(INITIAL_BOOKINGS);
     setMessages(INITIAL_MESSAGES);
     setReviews(INITIAL_REVIEWS);
     setNotifications(INITIAL_NOTIFICATIONS);
     setReports(INITIAL_REPORTS);
     setMonetizationSettings(INITIAL_SETTINGS);
-    setSavedJobIds(['job-1', 'job-2']);
-    setFavoriteFreelancerIds(['user-free-1']);
-    setIsSupabaseLive(isSupabaseConnected());
+    setSavedEventIds(['event-1', 'event-2']);
+    setFavoriteOrganizerIds(['user-org-1']);
+    setTransactions(INITIAL_TRANSACTIONS);
+    setPayoutRequests(INITIAL_PAYOUTS);
+    setAuditLogs(INITIAL_AUDIT_LOGS);
+    setCurrentView('home');
   };
 
   return (
@@ -964,74 +961,142 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         logout,
         updateCurrentUserProfile,
         toggleVerifyUser,
-        toggleFeatureFreelancer,
-        togglePremiumFreelancer,
+        toggleFeatureOrganizer,
+        togglePremiumOrganizer,
+        changeUserRole,
+        can,
 
-        jobs,
-        selectedJobId,
-        setSelectedJobId,
-        postJob,
-        toggleFeatureJob,
-        deleteJob,
-        updateJobStatus,
+        // Events
+        events,
+        selectedEventId,
+        setSelectedEventId,
+        publishEvent,
+        toggleFeatureEvent,
+        toggleTrendingEvent,
+        deleteEvent,
+        updateEventStatus,
 
-        selectedFreelancerId,
-        setSelectedFreelancerId,
+        // Organizers
+        selectedOrganizerId,
+        setSelectedOrganizerId,
 
-        applications,
-        applyToJob,
-        acceptApplication,
-        rejectApplication,
+        // Bookings
+        ticketBookings,
+        bookTicket,
+        cancelTicketBooking,
 
-        projects,
-        selectedProjectId,
-        setSelectedProjectId,
-        updateProjectStage,
-        completeAndReleaseProject,
+        // Financials
+        transactions,
+        payoutRequests,
+        auditLogs,
+        requestPayout,
+        approvePayout,
+        addAuditLog,
 
+        // Messaging
         messages,
         activeConversationUserId,
         setActiveConversationUserId,
         sendMessage,
         markConversationAsRead,
 
+        // Reviews
         reviews,
         submitReview,
 
-        savedJobIds,
-        favoriteFreelancerIds,
-        toggleSaveJob,
-        toggleFavoriteFreelancer,
+        // Saved / Favorites
+        savedEventIds,
+        favoriteOrganizerIds,
+        toggleSaveEvent,
+        toggleFavoriteOrganizer,
 
+        // Notifications
         notifications,
         markNotificationRead,
         markAllNotificationsRead,
         addNotification,
 
+        // Reports
         reports,
         submitReport,
         resolveReport,
 
+        // Settings
         monetizationSettings,
         updateMonetizationSettings,
 
+        // Navigation & Modals
         currentView,
         setCurrentView,
         authModalOpen,
         setAuthModalOpen,
         authModalMode,
         setAuthModalMode,
-        applyModalOpen,
-        setApplyModalOpen,
+        ticketBookingModalEvent,
+        setTicketBookingModalEvent,
+        shareModalEvent,
+        setShareModalEvent,
         reportModalData,
         setReportModalData,
-        reviewModalProject,
-        setReviewModalProject,
         supabaseModalOpen,
         setSupabaseModalOpen,
+        rolesModalOpen,
+        setRolesModalOpen,
+        paymentDocsModalOpen,
+        setPaymentDocsModalOpen,
+        payoutModalOpen,
+        setPayoutModalOpen,
+        roleRestrictedNotice,
+        setRoleRestrictedNotice,
+
+        // Compatibility Aliases
+        jobs: events,
+        selectedJobId: selectedEventId,
+        setSelectedJobId: setSelectedEventId,
+        postJob: publishEvent as any,
+        toggleFeatureJob: toggleFeatureEvent,
+        deleteJob: deleteEvent,
+        updateJobStatus: updateEventStatus as any,
+        selectedFreelancerId: selectedOrganizerId,
+        setSelectedFreelancerId: setSelectedOrganizerId,
+        applications: ticketBookings as any,
+        applyToJob: ((data: any) => {
+          bookTicket({
+            eventId: data.jobId,
+            tierId: 'tier-1',
+            quantity: 1,
+            attendeeName: currentUser?.full_name || 'Attendee',
+            attendeePhone: '+256 772 123 456',
+            attendeeEmail: currentUser?.email || 'user@example.ug',
+            paymentMethod: 'mtn_momo',
+          });
+          return true;
+        }) as any,
+        acceptApplication: () => {},
+        rejectApplication: () => {},
+        projects: ticketBookings as any,
+        selectedProjectId: selectedEventId,
+        setSelectedProjectId: setSelectedEventId,
+        updateProjectStage: () => {},
+        completeAndReleaseProject: () => {},
+        savedJobIds: savedEventIds,
+        favoriteFreelancerIds: favoriteOrganizerIds,
+        toggleSaveJob: toggleSaveEvent,
+        toggleFavoriteFreelancer: toggleFavoriteOrganizer,
+        applyModalOpen: ticketBookingModalEvent !== null,
+        setApplyModalOpen: (open) => {
+          if (!open) setTicketBookingModalEvent(null);
+        },
+        reviewModalProject: null,
+        setReviewModalProject: () => {},
+        escrowDepositModalProject: null,
+        setEscrowDepositModalProject: () => {},
+        initiateEscrowDeposit: () => ({} as any),
+        toggleFeatureFreelancer: toggleFeatureOrganizer,
+        togglePremiumFreelancer: togglePremiumOrganizer,
 
         resetAllData,
-        isSupabaseLive,
+        isSupabaseLive: isSupabaseConnected(),
       }}
     >
       {children}

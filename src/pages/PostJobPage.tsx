@@ -21,6 +21,10 @@ export const PostJobPage: React.FC = () => {
     setCurrentView,
     setAuthModalOpen,
     monetizationSettings,
+    can,
+    loginAs,
+    users,
+    setRolesModalOpen,
   } = useApp();
 
   const [title, setTitle] = useState('');
@@ -107,7 +111,58 @@ export const PostJobPage: React.FC = () => {
         </div>
 
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-          {submitted ? (
+          {currentUser && !can('jobs:create') ? (
+            <div className="p-8 sm:p-12 text-center space-y-5">
+              <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/30 text-amber-700 flex items-center justify-center mx-auto shadow-xs">
+                <ShieldCheck className="w-8 h-8" />
+              </div>
+              <div className="space-y-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800">
+                  Role Restricted: jobs:create
+                </span>
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900">
+                  Freelancer Account Detected
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto pt-1">
+                  On <strong>Gig Connect UG</strong>, job posting and milestone funding are strictly managed by Client accounts. Freelancer accounts submit proposals and build portfolios.
+                </p>
+              </div>
+
+              <div className="bg-amber-50/70 border border-amber-200 p-4 rounded-2xl max-w-md mx-auto text-left text-xs space-y-1.5 text-slate-700">
+                <span className="font-bold text-amber-950 block">Looking to hire other talent?</span>
+                <p>
+                  You can switch into a Client demo account to test publishing listings, reviewing candidate proposals, and funding escrow in UGX.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => loginAs('user-client-1')}
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs shadow-xs cursor-pointer transition-all"
+                >
+                  Switch to Client (David Ssekandi)
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setCurrentView('jobs')}
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs cursor-pointer"
+                >
+                  Browse Open Jobs
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setRolesModalOpen(true)}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-purple-700 hover:bg-purple-50 font-semibold text-xs cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Coins className="w-4 h-4" />
+                  <span>Inspect Roles Matrix</span>
+                </button>
+              </div>
+            </div>
+          ) : submitted ? (
             <div className="p-12 text-center space-y-4">
               <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-xs">
                 <CheckCircle2 className="w-10 h-10" />

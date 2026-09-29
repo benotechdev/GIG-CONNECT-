@@ -16,6 +16,11 @@ import { ApplyModal } from './components/ApplyModal';
 import { ReportModal } from './components/ReportModal';
 import { ReviewModal } from './components/ReviewModal';
 import { SupabaseModal } from './components/SupabaseModal';
+import { RoleRestrictedModal } from './components/RoleRestrictedModal';
+import { RolesExplorerModal } from './components/RolesExplorerModal';
+import { PaymentGatewayModal } from './components/PaymentGatewayModal';
+import { EscrowDepositModal } from './components/EscrowDepositModal';
+import { PayoutModal } from './components/PayoutModal';
 
 // Pages
 import { BrowseJobsPage } from './pages/BrowseJobsPage';
@@ -101,6 +106,11 @@ function AppContent() {
       <ReportModal />
       <ReviewModal />
       <SupabaseModal />
+      <RoleRestrictedModal />
+      <RolesExplorerModal />
+      <PaymentGatewayModal />
+      <EscrowDepositModal />
+      <PayoutModal />
     </div>
   );
 }

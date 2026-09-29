@@ -25,6 +25,8 @@ export const ProjectTrackingPage: React.FC = () => {
     setActiveConversationUserId,
     setCurrentView,
     setAuthModalOpen,
+    setEscrowDepositModalProject,
+    setPaymentDocsModalOpen,
   } = useApp();
 
   const [selectedStageFilter, setSelectedStageFilter] = useState<string>('all');
@@ -440,18 +442,46 @@ export const ProjectTrackingPage: React.FC = () => {
                     <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-3">
                       <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
                         <Sparkles className="w-4 h-4 text-amber-600" />
-                        <span>Client Action: Milestone Review & Payment Release</span>
+                        <span>Client Action: Escrow Funding & Deliverable Sign-Off</span>
                       </div>
-                      <p className="text-xs text-slate-600">
-                        Once you verify the deliverables provided by {activeContract.freelancer_name}, click below to release <strong>{formatUGX(activeContract.freelancer_payout_ugx)}</strong> directly to their Ugandan Mobile Money wallet.
-                      </p>
-                      <button
-                        onClick={() => handleApproveAndRelease(activeContract.id)}
-                        className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1.5"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        <span>Approve Deliverables & Release {formatUGX(activeContract.agreed_amount_ugx)}</span>
-                      </button>
+
+                      {activeContract.stage === 'hired' && (
+                        <div className="space-y-2">
+                          <p className="text-xs text-slate-600">
+                            To activate this contract and enable {activeContract.freelancer_name} to begin development safely, deposit the agreed budget into Gig Connect UG Escrow.
+                          </p>
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            <button
+                              onClick={() => setEscrowDepositModalProject(activeContract)}
+                              className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                            >
+                              <Coins className="w-4 h-4" />
+                              <span>Deposit Escrow via MTN / Airtel ({formatUGX(activeContract.agreed_amount_ugx)})</span>
+                            </button>
+                            <button
+                              onClick={() => setPaymentDocsModalOpen(true)}
+                              className="px-3.5 py-2.5 rounded-xl border border-amber-300 hover:bg-amber-100 text-amber-900 text-xs font-semibold cursor-pointer"
+                            >
+                              How Escrow Works
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {activeContract.stage === 'in_progress' && (
+                        <div className="space-y-2">
+                          <p className="text-xs text-slate-600">
+                            Funds are locked in Bank of Uganda compliant escrow. Once you verify the deliverables provided by {activeContract.freelancer_name}, click below to release <strong>{formatUGX(activeContract.freelancer_payout_ugx)}</strong> directly to their Ugandan Mobile Money wallet.
+                          </p>
+                          <button
+                            onClick={() => handleApproveAndRelease(activeContract.id)}
+                            className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                            <span>Approve Deliverables & Release {formatUGX(activeContract.agreed_amount_ugx)}</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
 

@@ -90,7 +90,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
           {showTagline && (
             <div className="flex items-center justify-center gap-1.5 mt-1">
               <span className={`font-semibold tracking-wide ${taglineSizes[size]} ${taglineColor}`}>
-                Connect. Work. Earn.
+                Discover Events. Create Experiences.
               </span>
               {/* Uganda flag ribbon */}
               <div className="flex flex-col w-4 h-2.5 rounded-[1px] overflow-hidden shadow-xs">
@@ -117,7 +117,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
         {showTagline && (
           <div className="flex items-center gap-1.5 mt-0.5">
             <span className={`font-medium tracking-normal ${taglineSizes[size]} ${taglineColor}`}>
-              Connect. Work. Earn.
+              Discover Events. Create Experiences.
             </span>
             {/* Ugandan flag swoosh */}
             <div className="inline-flex flex-col w-3.5 h-2 rounded-[1px] overflow-hidden shadow-xs">

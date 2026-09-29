@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, CheckCircle2, Clock, Coins, Send, Info } from 'lucide-react';
+import { X, CheckCircle2, Clock, Coins, Send, Info, ShieldCheck, UserCheck } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { formatUGX } from '../utils/formatters';
 
@@ -11,6 +11,9 @@ export const ApplyModal: React.FC = () => {
     jobs,
     applyToJob,
     monetizationSettings,
+    currentUser,
+    can,
+    loginAs,
   } = useApp();
 
   const [proposedBudget, setProposedBudget] = useState<number>(0);
@@ -93,7 +96,42 @@ export const ApplyModal: React.FC = () => {
 
         {/* Form Body */}
         <div className="p-6 overflow-y-auto">
-          {isSuccess ? (
+          {currentUser && !can('applications:submit') ? (
+            <div className="py-8 text-center space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-700 flex items-center justify-center mx-auto shadow-xs">
+                <ShieldCheck className="w-7 h-7" />
+              </div>
+              <div className="space-y-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800">
+                  Role Restricted: applications:submit
+                </span>
+                <h3 className="text-lg font-bold text-slate-900">
+                  Client Account Active
+                </h3>
+                <p className="text-xs text-slate-600 max-w-sm mx-auto">
+                  Client accounts on <strong>Gig Connect UG</strong> hire talent and fund contracts. To submit proposals and apply for jobs, switch to a Freelancer profile.
+                </p>
+              </div>
+
+              <div className="pt-2 flex flex-col sm:flex-row gap-2 justify-center">
+                <button
+                  type="button"
+                  onClick={() => loginAs('user-free-1')}
+                  className="py-2.5 px-5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs cursor-pointer transition-all"
+                >
+                  <UserCheck className="w-4 h-4" />
+                  <span>Switch to Freelancer (Brian Kato)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setApplyModalOpen(false)}
+                  className="py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : isSuccess ? (
             <div className="py-12 text-center space-y-3">
               <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-xs">
                 <CheckCircle2 className="w-10 h-10" />
