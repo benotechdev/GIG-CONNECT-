@@ -303,6 +303,180 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
   },
 };
 
+export interface PermissionItem {
+  key: Permission;
+  label: string;
+  description: string;
+}
+
+export interface PermissionGroup {
+  category: string;
+  permissions: PermissionItem[];
+}
+
+export const PERMISSION_GROUPS: PermissionGroup[] = [
+  {
+    category: 'Events & Entertainment',
+    permissions: [
+      {
+        key: 'events:create',
+        label: 'Create & Publish Events',
+        description: 'Publish concerts, festivals, trips, parties, sports and comedy shows with ticket tiers.',
+      },
+      {
+        key: 'events:edit_own',
+        label: 'Edit Own Events',
+        description: 'Update dates, venues, lineup, ticket tiers, and poster artwork.',
+      },
+      {
+        key: 'events:delete_own',
+        label: 'Cancel or Archive Events',
+        description: 'Cancel, reschedule, or remove posted entertainment events.',
+      },
+      {
+        key: 'events:feature',
+        label: 'Promote & Feature Events',
+        description: 'Submit events for front-page spotlight, trending badge, and banner placement.',
+      },
+      {
+        key: 'events:moderate',
+        label: 'Review & Moderate Events',
+        description: 'Approve or flag community events for safety and authenticity.',
+      },
+      {
+        key: 'events:view_attendees',
+        label: 'Access Attendee Roster',
+        description: 'View guest list, ticket tier breakdown, and scanned entries.',
+      },
+    ],
+  },
+  {
+    category: 'Tickets & Booking',
+    permissions: [
+      {
+        key: 'tickets:book',
+        label: 'Purchase Event Tickets',
+        description: 'Buy tickets in UGX via MTN MoMo, Airtel Money, or Card.',
+      },
+      {
+        key: 'tickets:view_own',
+        label: 'My E-Tickets & Passes',
+        description: 'View, download QR codes, and present passes at gate entry.',
+      },
+      {
+        key: 'tickets:refund',
+        label: 'Process Ticket Refunds',
+        description: 'Issue refunds for cancelled or rescheduled events.',
+      },
+      {
+        key: 'tickets:scan',
+        label: 'Scan & Validate Entry Tickets',
+        description: 'Scan and verify attendee QR codes at event entry gates.',
+      },
+    ],
+  },
+  {
+    category: 'Organizers & Profiles',
+    permissions: [
+      {
+        key: 'organizer:verify',
+        label: 'Verify Organizer Profile',
+        description: 'Grant official verified shield to vetted entertainment organizers.',
+      },
+      {
+        key: 'organizer:feature',
+        label: 'Feature Organizer Spotlight',
+        description: 'Pin organizer profile on the homepage top organizers row.',
+      },
+      {
+        key: 'profile:manage_own',
+        label: 'Manage Creator Profile',
+        description: 'Update organizer brand, social links, bio, and contact numbers.',
+      },
+      {
+        key: 'portfolio:edit',
+        label: 'Past Event Showcase & Media',
+        description: 'Upload photos, recaps, and video highlights from past events.',
+      },
+    ],
+  },
+  {
+    category: 'Payments & Mobile Money',
+    permissions: [
+      {
+        key: 'payments:ticket_payout',
+        label: 'Disburse Ticket Revenues',
+        description: 'Transfer net ticket proceeds to organizer MTN/Airtel accounts.',
+      },
+      {
+        key: 'payments:view_transactions',
+        label: 'Transaction & Sales History',
+        description: 'View detailed real-time event booking and payout receipts in UGX.',
+      },
+      {
+        key: 'payments:manage_gateways',
+        label: 'Gateway Configurations',
+        description: 'Manage Uganda MTN Mobile Money & Airtel Money API integrations.',
+      },
+      {
+        key: 'payments:initiate_escrow',
+        label: 'Secure Ticket Escrow Holding',
+        description: 'Hold attendee funds until event occurs with buyer protection.',
+      },
+      {
+        key: 'payments:request_payout',
+        label: 'Request Fund Withdrawal',
+        description: 'Submit payout request to withdraw accrued ticket sales to MoMo.',
+      },
+    ],
+  },
+  {
+    category: 'Platform Administration',
+    permissions: [
+      {
+        key: 'admin:view_dashboard',
+        label: 'Admin Analytics Dashboard',
+        description: 'Access high-level metrics on ticket volume, active events, and revenue.',
+      },
+      {
+        key: 'admin:manage_users',
+        label: 'Manage Users & Organizers',
+        description: 'Suspend accounts, assign roles, and handle verification requests.',
+      },
+      {
+        key: 'admin:manage_events',
+        label: 'Full Event Moderation',
+        description: 'Promote, edit, or remove any event across the entire platform.',
+      },
+      {
+        key: 'admin:manage_monetization',
+        label: 'Monetization & Commission',
+        description: 'Configure ticket booking fee %, featured placement fees in UGX.',
+      },
+      {
+        key: 'admin:moderate_reports',
+        label: 'Reports & Disputes Resolution',
+        description: 'Review community flags, scam warnings, and chargeback queries.',
+      },
+      {
+        key: 'admin:audit_logs',
+        label: 'Security & Audit Trail',
+        description: 'Inspect privileged administrative events, payouts, and logins.',
+      },
+      {
+        key: 'admin:manage_roles',
+        label: 'RBAC Role Management',
+        description: 'Assign and adjust permissions for organizers, staff, and moderators.',
+      },
+      {
+        key: 'admin:finance_overview',
+        label: 'Financial Reconciliation',
+        description: 'Audit total UGX inflows, pending escrow holdings, and MoMo fees.',
+      },
+    ],
+  },
+];
+
 export const roleHasPermission = (role: UserRole | undefined, permission: Permission): boolean => {
   if (!role) return false;
   const def = ROLE_DEFINITIONS[role];

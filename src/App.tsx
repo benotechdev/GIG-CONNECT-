@@ -2,17 +2,33 @@ import React, { useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
+
+// Homepage Components (exact order: Featured Events → Upcoming Events → Popular Categories → Trending Events → Weekend Events → Top Organizers → Call to Action)
 import { HeroSection } from './components/HeroSection';
+import { FeaturedEvents } from './components/FeaturedEvents';
+import { UpcomingEvents } from './components/UpcomingEvents';
 import { PopularCategories } from './components/PopularCategories';
-import { FeaturedFreelancers } from './components/FeaturedFreelancers';
-import { LatestJobs } from './components/LatestJobs';
-import { HowItWorks } from './components/HowItWorks';
-import { WhyGigConnectUG } from './components/WhyGigConnectUG';
+import { TrendingEvents } from './components/TrendingEvents';
+import { WeekendEvents } from './components/WeekendEvents';
+import { TopOrganizers } from './components/TopOrganizers';
 import { CallToAction } from './components/CallToAction';
+
+// Event Pages
+import { BrowseEventsPage } from './pages/BrowseEventsPage';
+import { EventDetailsPage } from './pages/EventDetailsPage';
+import { CreateEventPage } from './pages/CreateEventPage';
+import { BrowseOrganizersPage } from './pages/BrowseOrganizersPage';
+import { OrganizerProfilePage } from './pages/OrganizerProfilePage';
+import { OrganizerDashboardPage } from './pages/OrganizerDashboardPage';
+import { MyTicketsPage } from './pages/MyTicketsPage';
+import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { MessagesPage } from './pages/MessagesPage';
+import { SavedPage } from './pages/SavedPage';
 
 // Modals
 import { AuthModal } from './components/AuthModal';
-import { ApplyModal } from './components/ApplyModal';
+import { TicketBookingModal } from './components/TicketBookingModal';
+import { ShareModal } from './components/ShareModal';
 import { ReportModal } from './components/ReportModal';
 import { ReviewModal } from './components/ReviewModal';
 import { SupabaseModal } from './components/SupabaseModal';
@@ -22,20 +38,8 @@ import { PaymentGatewayModal } from './components/PaymentGatewayModal';
 import { EscrowDepositModal } from './components/EscrowDepositModal';
 import { PayoutModal } from './components/PayoutModal';
 
-// Pages
-import { BrowseJobsPage } from './pages/BrowseJobsPage';
-import { PostJobPage } from './pages/PostJobPage';
-import { BrowseFreelancersPage } from './pages/BrowseFreelancersPage';
-import { FreelancerProfilePage } from './pages/FreelancerProfilePage';
-import { ProjectTrackingPage } from './pages/ProjectTrackingPage';
-import { MessagesPage } from './pages/MessagesPage';
-import { ClientDashboardPage } from './pages/ClientDashboardPage';
-import { FreelancerDashboardPage } from './pages/FreelancerDashboardPage';
-import { AdminDashboardPage } from './pages/AdminDashboardPage';
-import { SavedPage } from './pages/SavedPage';
-
 function AppContent() {
-  const { currentView, setCurrentView, setSelectedJobId } = useApp();
+  const { currentView, setCurrentView, setSelectedEventId } = useApp();
 
   const [activeCategoryFilter, setActiveCategoryFilter] = useState('');
   const [activeKeywordFilter, setActiveKeywordFilter] = useState('');
@@ -43,16 +47,21 @@ function AppContent() {
   const handleHeroSearch = (keyword: string, category: string, location: string) => {
     setActiveKeywordFilter(keyword);
     setActiveCategoryFilter(category);
+    setCurrentView('events');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCategorySelect = (categoryName: string) => {
     setActiveCategoryFilter(categoryName);
     setActiveKeywordFilter('');
+    setCurrentView('events');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleJobSelectFromHome = (jobId: string) => {
-    setSelectedJobId(jobId);
-    setCurrentView('jobs');
+  const handleEventSelect = (eventId: string) => {
+    setSelectedEventId(eventId);
+    setCurrentView('event-detail');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -62,38 +71,47 @@ function AppContent() {
       <main className="flex-1">
         {currentView === 'home' && (
           <>
+            {/* Hero Section */}
             <HeroSection onSearch={handleHeroSearch} />
+
+            {/* Requested Homepage Sequence:
+                Featured Events → Upcoming Events → Popular Categories → Trending Events → Weekend Events → Top Organizers → Call to Action */}
+            <FeaturedEvents />
+            <UpcomingEvents />
             <PopularCategories onSelectCategory={handleCategorySelect} />
-            <FeaturedFreelancers />
-            <LatestJobs onSelectJob={handleJobSelectFromHome} />
-            <HowItWorks />
-            <WhyGigConnectUG />
+            <TrendingEvents />
+            <WeekendEvents />
+            <TopOrganizers />
             <CallToAction />
           </>
         )}
 
-        {currentView === 'jobs' && (
-          <BrowseJobsPage
+        {(currentView === 'events' || currentView === 'jobs') && (
+          <BrowseEventsPage
             initialCategory={activeCategoryFilter}
             initialKeyword={activeKeywordFilter}
           />
         )}
 
-        {currentView === 'post-job' && <PostJobPage />}
+        {currentView === 'event-detail' && <EventDetailsPage />}
 
-        {currentView === 'freelancers' && <BrowseFreelancersPage />}
+        {(currentView === 'create-event' || currentView === 'post-job') && <CreateEventPage />}
 
-        {currentView === 'freelancer-detail' && <FreelancerProfilePage />}
+        {(currentView === 'organizers' || currentView === 'freelancers') && <BrowseOrganizersPage />}
 
-        {currentView === 'projects' && <ProjectTrackingPage />}
+        {(currentView === 'organizer-detail' || currentView === 'freelancer-detail') && <OrganizerProfilePage />}
 
-        {currentView === 'messages' && <MessagesPage />}
+        {(currentView === 'my-tickets' || currentView === 'projects') && <MyTicketsPage />}
 
-        {currentView === 'client-dashboard' && <ClientDashboardPage />}
+        {currentView === 'organizer-dashboard' && <OrganizerDashboardPage />}
 
-        {currentView === 'freelancer-dashboard' && <FreelancerDashboardPage />}
+        {currentView === 'client-dashboard' && <OrganizerDashboardPage />}
+
+        {currentView === 'freelancer-dashboard' && <MyTicketsPage />}
 
         {currentView === 'admin-dashboard' && <AdminDashboardPage />}
+
+        {currentView === 'messages' && <MessagesPage />}
 
         {currentView === 'saved' && <SavedPage />}
       </main>
@@ -102,7 +120,8 @@ function AppContent() {
 
       {/* Global Modals */}
       <AuthModal />
-      <ApplyModal />
+      <TicketBookingModal />
+      <ShareModal />
       <ReportModal />
       <ReviewModal />
       <SupabaseModal />

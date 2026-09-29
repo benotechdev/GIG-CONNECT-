@@ -65,13 +65,13 @@ export const Navbar: React.FC = () => {
       <div className="bg-slate-900 text-white text-xs py-1.5 px-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500 text-slate-950">
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500 text-slate-950 font-bold">
               UGANDA
             </span>
             <span className="hidden sm:inline text-slate-300">
-              Empowering local tech, creative & business talent. Pay & earn securely in UGX.
+              Discover Events. Create Experiences. Book tickets securely in UGX via MTN MoMo & Airtel Money.
             </span>
-            <span className="sm:hidden text-slate-300">Uganda's Freelance Platform</span>
+            <span className="sm:hidden text-slate-300">Uganda's Events & Entertainment Platform</span>
           </div>
 
           <div className="flex items-center gap-3 text-slate-300 text-[11px]">
@@ -92,7 +92,7 @@ export const Navbar: React.FC = () => {
               title="View Uganda Payment Gateway recommendation & technical integration report"
             >
               <Coins className="w-3.5 h-3.5 text-amber-400" />
-              <span className="font-semibold text-amber-300">UGX Escrow & Gateway</span>
+              <span className="font-semibold text-amber-300">UGX MoMo & Gateways</span>
             </button>
 
             {/* Supabase status pill */}
@@ -238,7 +238,7 @@ export const Navbar: React.FC = () => {
             <button
               onClick={() => navigateTo('saved')}
               className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg relative cursor-pointer"
-              title="Saved Jobs & Favorites"
+              title="Saved Events & Organizers"
             >
               <Bookmark className="w-5 h-5" />
               {savedJobIds.length > 0 && (
@@ -325,13 +325,13 @@ export const Navbar: React.FC = () => {
               )}
             </div>
 
-            {/* Post a Job button (Bold Primary CTA) */}
+            {/* Post an Event button (Bold Primary CTA) */}
             <button
-              onClick={() => navigateTo('post-job')}
+              onClick={() => navigateTo('create-event')}
               className="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 text-xs sm:text-sm font-black shadow-md shadow-amber-500/20 transition-all cursor-pointer uppercase tracking-wider"
             >
               <PlusCircle className="w-4 h-4 text-slate-950" />
-              <span>Post a Job</span>
+              <span>Post an Event</span>
             </button>
 
             {/* User Profile / Login */}
@@ -364,38 +364,30 @@ export const Navbar: React.FC = () => {
                       <p className="text-sm font-bold text-slate-900">{currentUser.full_name}</p>
                       <p className="text-xs text-blue-700 capitalize font-semibold flex items-center gap-1 mt-0.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        {currentUser.role} Account
+                        {currentUser.role === 'client' ? 'Organizer' : currentUser.role} Account
                       </p>
-                      {currentUser.role === 'freelancer' && (
+                      {(currentUser.role === 'organizer' || currentUser.role === 'client' || currentUser.role === 'agency') && (
                         <p className="text-[11px] text-slate-600 mt-1">
-                          Earnings: <span className="font-bold text-emerald-700">{formatCompactUGX(currentUser.earnings_ugx)}</span>
+                          Ticket Sales: <span className="font-bold text-emerald-700">{formatCompactUGX(currentUser.earnings_ugx)}</span>
                         </p>
                       )}
-                      {currentUser.role === 'client' && (
+                      {(currentUser.role === 'attendee' || currentUser.role === 'freelancer') && (
                         <p className="text-[11px] text-slate-600 mt-1">
-                          Total Spent: <span className="font-bold text-blue-700">{formatCompactUGX(currentUser.spent_ugx)}</span>
+                          Tickets Bought: <span className="font-bold text-blue-700">{formatCompactUGX(currentUser.spent_ugx)}</span>
                         </p>
                       )}
                     </div>
 
                     <div className="py-1">
-                      {currentUser.role === 'client' ? (
+                      {(currentUser.role === 'organizer' || currentUser.role === 'client' || currentUser.role === 'agency') ? (
                         <button
-                          onClick={() => navigateTo('client-dashboard')}
+                          onClick={() => navigateTo('organizer-dashboard')}
                           className="w-full text-left px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer flex items-center gap-2"
                         >
                           <Briefcase className="w-3.5 h-3.5 text-slate-500" />
-                          Client Dashboard
+                          Organizer Dashboard
                         </button>
-                      ) : currentUser.role === 'freelancer' ? (
-                        <button
-                          onClick={() => navigateTo('freelancer-dashboard')}
-                          className="w-full text-left px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer flex items-center gap-2"
-                        >
-                          <UserIcon className="w-3.5 h-3.5 text-slate-500" />
-                          Freelancer Dashboard & Profile
-                        </button>
-                      ) : (
+                      ) : currentUser.role === 'admin' ? (
                         <button
                           onClick={() => navigateTo('admin-dashboard')}
                           className="w-full text-left px-4 py-2 text-xs font-medium text-purple-700 hover:bg-purple-50 cursor-pointer flex items-center gap-2"
@@ -403,14 +395,22 @@ export const Navbar: React.FC = () => {
                           <Shield className="w-3.5 h-3.5" />
                           Admin Overview
                         </button>
+                      ) : (
+                        <button
+                          onClick={() => navigateTo('my-tickets')}
+                          className="w-full text-left px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer flex items-center gap-2"
+                        >
+                          <UserIcon className="w-3.5 h-3.5 text-slate-500" />
+                          My E-Tickets & Passes
+                        </button>
                       )}
 
                       <button
-                        onClick={() => navigateTo('projects')}
+                        onClick={() => navigateTo('my-tickets')}
                         className="w-full text-left px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer flex items-center gap-2"
                       >
                         <CheckCircle className="w-3.5 h-3.5 text-slate-500" />
-                        Project Pipeline Tracker
+                        My E-Tickets & Wallet
                       </button>
 
                       <button
